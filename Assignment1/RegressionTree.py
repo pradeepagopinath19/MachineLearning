@@ -3,33 +3,42 @@ import math
 def main():
     housingDataFile = open("housing_train.txt", "r")
     lines = housingDataFile.read().split('\n')
-
+    #print(lines)
     featureValueMatrix = []
+
     for line in lines:
-        values = line.split()
-        if len(values) >0:
-            #Empty rows present in the dataset towards the end
-            featureValueMatrix.append(values)
+        values = [float(x) for x in line.split()]
+        #print(values)
+        # Empty rows present in the dataset towards the end
+        if len(values) == 0:
+            continue
+
+        featureValueMatrix.append(values)
     #print(featureValueMatrix)
+
     fvm = np.array(featureValueMatrix)
-    print(fvm.shape)
-    listOfMSE=[]
-    for i in range (fvm.shape[1]):
+    #print(fvm)
+    #print(fvm.shape)
+
+    mse_iteration={}
+
+    minimum_mse = math.inf
+
+    numberOfFeatures = fvm.shape[1]-1
+    for i in range (numberOfFeatures):
         for j in range(fvm.shape[0]):
             left,right = split_data(fvm, i,j)
             leftMSE = calculateMeanSquareError(left)
             rightMSE = calculateMeanSquareError(right)
-            listOfMSE.append(leftMSE+rightMSE)
-            #exit()|
-    print(listOfMSE)
-    print("Minimum value is",min(listOfMSE))
-    print("Maximum value of",max(listOfMSE))
-    print("Size is",len(listOfMSE))
+            mse_iteration[i,j] = leftMSE+rightMSE
+            if mse_iteration[i,j] < minimum_mse:
+                minimum_mse = mse_iteration[i,j]
+                min_feature_column = i
+                min_threshold =j
 
-    for i in range(len(featureValueMatrix)):
-        for j in range(len(featureValueMatrix[i])):
-            #print(featureValueMatrix[i][j])
-            a=i
+    print(mse_iteration)
+    print(minimum_mse, min_feature_column, fvm[min_threshold][min_feature_column])
+    print("Size is",len(mse_iteration))
 
 
 def split_data(data, feature, threshold):
@@ -39,27 +48,25 @@ def split_data(data, feature, threshold):
     print("Threshold value is:", data[threshold][feature])
     for i in range(len(data)):
         if float(data[i][feature]) < float(data[threshold][feature]):
-            left.append(float(data[i][data.shape[1]-1]))
+            left.append(data[i][data.shape[1]-1])
         else:
-            right.append(float(data[i][data.shape[1]-1]))
-    return (left, right)
+            right.append(data[i][data.shape[1]-1])
+    return left, right
 
 def calculateMeanSquareError(values):
-    sum = 0
 
-    if(len(values)==0):
+    mean = np.mean(values)
+    #print('Mean is', mean)
+
+    if(math.isnan(mean)):
         return 0
-    for i in range(len(values)):
-        sum+=values[i]
 
-    mean = sum/len(values)
-    print('Mean is', mean)
-    #print('Value array contents are', values)
+    print('Number of columns:', len(values))
     mse =0
 
     for i in range(len(values)):
         mse+= math.pow(values[i]-mean,2)
-    return mse
+    return mse/len(values)
 
 if __name__ == "__main__":
     main()
