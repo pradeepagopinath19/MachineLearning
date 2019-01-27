@@ -14,7 +14,7 @@ def split_data(dataset, featureColumn, thresholdRow):
 
     left, right = [],[]
     for row in dataset:
-        if row[-1] < thresholdValue:
+        if row[featureColumn] < thresholdValue:
             left.append(row)
         else:
             right.append(row)
@@ -44,9 +44,9 @@ def find_best_split(dataset):
     minimumError = math.inf
     minimumFeature = 0
     minimumThreshold = 0
-    left, right=[],[]
+    left, right = [], []
 
-    for j in  range(len(dataset[0])-1):
+    for j in range(len(dataset[0])-1):
         for i in range(len(dataset)):
             left, right = split_data(dataset, j, i)
             calculatedError = calculate_mse(left, right, labelValues)
@@ -61,7 +61,10 @@ def find_best_split(dataset):
 def leaf_node(data):
     featureValues = [row[-1] for row in data]
 
-    return np.mean(featureValues)
+    mean =0
+    if len(featureValues)>0:
+        mean = np.mean(featureValues)
+    return mean
 
 
 def split_tree(node, max_depth, stopping_size, depth):
@@ -70,31 +73,31 @@ def split_tree(node, max_depth, stopping_size, depth):
     #stopping criteria
 
     if depth == max_depth:
-        node['left']=leaf_node(node['left'])
-        node['right']= leaf_node(node['right'])
+        node['llink']=leaf_node(node['left'])
+        node['rlink']= leaf_node(node['right'])
         return
 
     if not node['left'] or not node['right']:
-        node['left'] = node['right'] = leaf_node(node['left'] + node['right'])
+        node['llink'] = node['rlink'] = leaf_node(node['left']+node['right'])
         return
 
-    # recursion step
+    # recursion steps
     if len(node['left']) <= stopping_size:
-        node['left'] = leaf_node(node['left'])
+        node['llink'] = leaf_node(node['left'])
     else:
-        node['left']= find_best_split(node['left'])
-        split_tree(node['left'], max_depth, stopping_size, depth+1)
+        node['llink']= find_best_split(node['left'])
+        split_tree(node['llink'], max_depth, stopping_size, depth+1)
 
     if len(node['right']) <= stopping_size:
-        node['right'] = leaf_node(node['right'])
+        node['rlink'] = leaf_node(node['right'])
     else:
-        node['right'] = find_best_split(node['right'])
-        split_tree(node['right'], max_depth, stopping_size, depth+1)
+        node['rlink'] = find_best_split(node['right'])
+        split_tree(node['rlink'], max_depth, stopping_size, depth+1)
 
 
 def build_tree(dataset, max_depth, stopping_size):
     root_node = find_best_split(dataset)
-    #print(root_node)
+    print(root_node)
     split_tree(root_node, max_depth, stopping_size, 1)
     return root_node
 
@@ -115,15 +118,15 @@ def fetch_dataset():
 
 def predict(tree_model, test_row):
     if test_row[tree_model['feature']] < tree_model['threshold']:
-        if isinstance(tree_model['left'], dict):
-            return predict(tree_model['left'], test_row)
+        if isinstance(tree_model['llink'], dict):
+            return predict(tree_model['llink'], test_row)
         else:
-            return tree_model['left']
+            return tree_model['llink']
     else:
-        if isinstance(tree_model['right'], dict):
-            return predict(tree_model['right'], test_row)
+        if isinstance(tree_model['rlink'], dict):
+            return predict(tree_model['rlink'], test_row)
         else:
-            return tree_model['right']
+            return tree_model['rlink']
 
 def test_model(dataset, tree_model):
     predictions = list()
@@ -145,8 +148,8 @@ def main():
     #print(training_dataset)
     #print(testing_dataset)
 
-    maximum_depth = 4
-    stopping_size = 5
+    maximum_depth = 5
+    stopping_size = 10
 
     tree_model = build_tree(training_dataset, maximum_depth, stopping_size)
     print("The model is", tree_model)
