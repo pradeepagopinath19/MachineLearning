@@ -1,72 +1,165 @@
 import numpy as np
 import math
-def main():
-    housingDataFile = open("housing_train.txt", "r")
-    lines = housingDataFile.read().split('\n')
-    #print(lines)
-    featureValueMatrix = []
-
-    for line in lines:
-        values = [float(x) for x in line.split()]
-        #print(values)
-        # Empty rows present in the dataset towards the end
-        if len(values) == 0:
-            continue
-
-        featureValueMatrix.append(values)
-    #print(featureValueMatrix)
-
-    fvm = np.array(featureValueMatrix)
-    #print(fvm)
-    #print(fvm.shape)
-
-    mse_iteration={}
-
-    minimum_mse = math.inf
-
-    numberOfFeatures = fvm.shape[1]-1
-    for i in range (numberOfFeatures):
-        for j in range(fvm.shape[0]):
-            left,right = split_data(fvm, i,j)
-            leftMSE = calculateMeanSquareError(left)
-            rightMSE = calculateMeanSquareError(right)
-            mse_iteration[i,j] = leftMSE+rightMSE
-            if mse_iteration[i,j] < minimum_mse:
-                minimum_mse = mse_iteration[i,j]
-                min_feature_column = i
-                min_threshold =j
-
-    print(mse_iteration)
-    print(minimum_mse, min_feature_column, fvm[min_threshold][min_feature_column])
-    print("Size is",len(mse_iteration))
+import pandas as pd
+import time
 
 
-def split_data(data, feature, threshold):
-    left = []
-    right = []
 
-    print("Threshold value is:", data[threshold][feature])
-    for i in range(len(data)):
-        if float(data[i][feature]) < float(data[threshold][feature]):
-            left.append(data[i][data.shape[1]-1])
+
+def split_data(dataset, featureColumn, thresholdRow):
+
+    thresholdValue = dataset[thresholdRow][featureColumn]
+    #print(thresholdValue)
+    #print(featureColumnValues)
+
+    left, right = [],[]
+    for row in dataset:
+        if row[-1] < thresholdValue:
+            left.append(row)
         else:
-            right.append(data[i][data.shape[1]-1])
+            right.append(row)
     return left, right
 
-def calculateMeanSquareError(values):
+def calculate_mse(leftValues, rightValues, label):
 
-    mean = np.mean(values)
-    #print('Mean is', mean)
+    leftLabelValues = [row[-1] for row in leftValues]
+    rightLabelValues = [row[-1] for row in rightValues]
 
-    if(math.isnan(mean)):
-        return 0
 
-    print('Number of columns:', len(values))
-    mse =0
+    if len(leftLabelValues) != 0:
+        varianceLeft = np.var(leftLabelValues)
+    else:
+        varianceLeft = 0
 
-    for i in range(len(values)):
-        mse+= math.pow(values[i]-mean,2)
-    return mse/len(values)
+    if len(rightLabelValues) !=0:
+        varianceRight = np.var(rightLabelValues)
+    else:
+       varianceRight = 0
+
+    return (varianceLeft * len(leftLabelValues)/len(label)) + (varianceRight * len(rightLabelValues) / len(label))
+
+def find_best_split(dataset):
+    labelValues = [row[-1] for row in dataset]
+
+    minimumError = math.inf
+    minimumFeature = 0
+    minimumThreshold = 0
+    left, right=[],[]
+
+    for j in  range(len(dataset[0])-1):
+        for i in range(len(dataset)):
+            left, right = split_data(dataset, j, i)
+            calculatedError = calculate_mse(left, right, labelValues)
+            if calculatedError < minimumError:
+                minimumError = calculatedError
+                minimumFeature = j
+                minimumThreshold = dataset[i][j]
+    print("Feature: %d minimumThreshold: %f Error: %f" % (minimumFeature+1, minimumThreshold, minimumError))
+    return {'left': left,'right': right, 'feature': minimumFeature, 'threshold': minimumThreshold, 'error': minimumError}
+
+
+def leaf_node(data):
+    featureValues = [row[-1] for row in data]
+
+    return np.mean(featureValues)
+
+
+def split_tree(node, max_depth, stopping_size, depth):
+    #print(node)
+
+    #stopping criteria
+
+    if depth == max_depth:
+        node['left']=leaf_node(node['left'])
+        node['right']= leaf_node(node['right'])
+        return
+
+    if not node['left'] or not node['right']:
+        node['left'] = node['right'] = leaf_node(node['left'] + node['right'])
+        return
+
+    # recursion step
+    if len(node['left']) <= stopping_size:
+        node['left'] = leaf_node(node['left'])
+    else:
+        node['left']= find_best_split(node['left'])
+        split_tree(node['left'], max_depth, stopping_size, depth+1)
+
+    if len(node['right']) <= stopping_size:
+        node['right'] = leaf_node(node['right'])
+    else:
+        node['right'] = find_best_split(node['right'])
+        split_tree(node['right'], max_depth, stopping_size, depth+1)
+
+
+def build_tree(dataset, max_depth, stopping_size):
+    root_node = find_best_split(dataset)
+    #print(root_node)
+    split_tree(root_node, max_depth, stopping_size, 1)
+    return root_node
+
+
+def fetch_dataset():
+
+    training_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_train.txt"
+    testing_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_test.txt"
+    training_data = pd.read_csv(training_url, header=None, sep='\s+')
+    testing_data = pd.read_csv(testing_url, header=None, sep='\s+')
+
+    #print(training_data)
+    #print(testing_data)
+    return training_data.values, testing_data.values
+
+
+
+
+def predict(tree_model, test_row):
+    if test_row[tree_model['feature']] < tree_model['threshold']:
+        if isinstance(tree_model['left'], dict):
+            return predict(tree_model['left'], test_row)
+        else:
+            return tree_model['left']
+    else:
+        if isinstance(tree_model['right'], dict):
+            return predict(tree_model['right'], test_row)
+        else:
+            return tree_model['right']
+
+def test_model(dataset, tree_model):
+    predictions = list()
+    for row in dataset:
+        prediction = predict(tree_model, row)
+        predictions.append(prediction)
+    return (predictions)
+
+
+def evaluate_prediction(estimation, dataset):
+    trueValues =[row[-1] for row in dataset]
+    errorValues = np.array(estimation)-np.array(trueValues)
+    return (np.sum(np.square(errorValues))/len(dataset))
+
+def main():
+
+    startTime = time.time()
+    training_dataset, testing_dataset = fetch_dataset()
+    #print(training_dataset)
+    #print(testing_dataset)
+
+    maximum_depth = 4
+    stopping_size = 5
+
+    tree_model = build_tree(training_dataset, maximum_depth, stopping_size)
+    print("The model is", tree_model)
+
+    predictedValues = test_model(testing_dataset, tree_model)
+    print("The predicted values are",predictedValues)
+
+    evaluateModel_mse = evaluate_prediction(predictedValues, testing_dataset)
+    print("The calculated MSE is", evaluateModel_mse)
+
+    endTime = time.time()
+    print("Operations completed in", endTime-startTime)
+
 
 if __name__ == "__main__":
     main()
