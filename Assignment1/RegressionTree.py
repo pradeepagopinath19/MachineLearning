@@ -37,11 +37,10 @@ def calculate_mse(leftValues, rightValues, label):
 
 def find_best_split(dataset):
     labelValues = [row[-1] for row in dataset]
-
     minimumError = math.inf
     minimumFeature = 0
     minimumThreshold = 0
-    minimumLeft, minimumRight =[], []
+    minimumLeft, minimumRight = [], []
     left, right = [], []
 
     for j in range(len(dataset[0]) - 1):
@@ -52,8 +51,8 @@ def find_best_split(dataset):
                 minimumError = calculatedError
                 minimumFeature = j
                 minimumThreshold = dataset[i][j]
-                minimumLeft= left
-                minimumRight =right
+                minimumLeft = left
+                minimumRight = right
     print("Feature: %d minimumThreshold: %f Error: %f" % (minimumFeature + 1, minimumThreshold, minimumError))
     return {'left': minimumLeft, 'right': minimumRight, 'feature': minimumFeature, 'threshold': minimumThreshold,
             'error': minimumError}
@@ -148,7 +147,7 @@ def main():
     # print(training_dataset)
     # print(testing_dataset)
 
-    maximum_depth = 4
+    maximum_depth = 5
     stopping_size = 10
 
     tree_model = build_tree(training_dataset, maximum_depth, stopping_size)
