@@ -68,8 +68,8 @@ def leaf_node(data):
 
 
 def split_tree(node, max_depth, stopping_size, depth):
-    print(node['feature'])
-    print(node['threshold'])
+    #print(node['feature'])
+    #print(node['threshold'])
 
     # stopping criteria
 
@@ -151,7 +151,7 @@ def main():
     stopping_size = 10
 
     tree_model = build_tree(training_dataset, maximum_depth, stopping_size)
-    print("The model is", tree_model)
+    #print("The model is", tree_model)
 
     predictedValues = test_model(testing_dataset, tree_model)
     print("The predicted values for testing set:", predictedValues)
