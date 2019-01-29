@@ -161,7 +161,7 @@ def build_tree(dataset, max_depth, stopping_size):
 
 def predict(tree_model, test_row):
 
-    if test_row[tree_model['feature']] < tree_model['threshold']:
+    if test_row[tree_model['feature']] <= tree_model['threshold']:
         if isinstance(tree_model['llink'], dict):
             return predict(tree_model['llink'], test_row)
         else:
@@ -197,7 +197,7 @@ def main():
         trainingSet, testingSet = get_training_testing_split(dataset, dataset_k_split, i)
         trainingSet = trainingSet.values
         testingSet = testingSet.values
-        maximum_depth = 5
+        maximum_depth = 4
         stopping_size = 10
         tree_model = build_tree(trainingSet, maximum_depth, stopping_size)
         #print("The model is", tree_model)
