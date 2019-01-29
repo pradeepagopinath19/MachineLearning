@@ -147,7 +147,7 @@ def main():
     # print(training_dataset)
     # print(testing_dataset)
 
-    maximum_depth = 5
+    maximum_depth = 4
     stopping_size = 10
 
     tree_model = build_tree(training_dataset, maximum_depth, stopping_size)
