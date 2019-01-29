@@ -4,9 +4,19 @@ import random
 import math
 from random import shuffle
 
+
+def shift_scale_normalization(dataset):
+    rows, cols = dataset.shape
+    for col in range(cols):
+        dataset[:, col] /= abs(dataset[:, col]).max()
+
+
+
 def extract_full_dataset():
     spam_dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
     spam_dataset = pd.read_csv(spam_dataset_url, header=None, sep=',')
+
+    #spam_dataset = shift_scale_normalization(spam_dataset.values)
 
     training_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_train.txt"
     testing_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_test.txt"
@@ -44,7 +54,7 @@ def evaluate_prediction_accuracy(predictedValues, actualValues, classification_t
         else:
             normalized_prediction.append(0)
     correct_predictions = [i for i, j in zip(normalized_prediction, actualValues) if i == j]
-    return float(len(correct_predictions)) / len(actualValues) * 100
+    return len(correct_predictions) / len(actualValues) * 100
 
 def main():
     spam_dataset, housing_training, housing_testing = extract_full_dataset()
@@ -58,29 +68,37 @@ def main():
     X = housing_training[:,0:len(housing_training[0])-1]
 
     # Adding one to each instance
-    X_b = np.c_[np.ones((len(X), 1)), X]
+    X_b = np.c_[np.ones(X.shape[0]), X]
     w = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(Y)
 
     # Adding one to each instance
-    X_new_b = np.c_[np.ones((len(X_test), 1)), X_test]
+    X_new_b = np.c_[np.ones(X_test.shape[0]), X_test]
     y_predict = X_new_b.dot(w)
+
+    print("Actual values for housing is", Y_test)
+    print("Predicted values are", y_predict)
     print("MSE for housing is:",evaluate_prediction(y_predict,Y_test))
 
 
     # Spam section
 
-    dataset_k_split = kfold_split(5)
+    dataset_k_split = kfold_split(3)
     #print(dataset_k_split)
 
 
     spam_accuracy =[]
+    span_mse =[]
     for i in dataset_k_split:
         trainingSet, testingSet = get_training_testing_split(spam_dataset, dataset_k_split, i)
+        #trainingSet = np.random.shuffle(trainingSet)
         trainingSet = trainingSet.values
         testingSet = testingSet.values
 
-        #trainingSet = np.random.shuffle(trainingSet)
+        #trainingSet = random.sample(trainingSet, len(trainingSet))
+        #trainingSet = sorted(trainingSet, key=lambda k: random.random())
         print(trainingSet)
+
+        #print(trainingSet)
         Y_test = [row[-1] for row in testingSet]
         X_test = testingSet[:, 0:len(testingSet[0]) - 1]
 
@@ -88,21 +106,24 @@ def main():
         X = trainingSet[:, 0:len(trainingSet[0]) - 1]
 
         # Adding one to each instance
-        X_b = np.c_[np.ones((len(X), 1)), X]
-        w = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(Y)
+        X_b = np.c_[np.ones(X.shape[0]), X]
+        #print(X_b)
+        w = np.linalg.pinv(X_b.T.dot(X_b)).dot(X_b.T).dot(Y)
 
         # Adding one to each instance
-        X_new_b = np.c_[np.ones((len(X_test), 1)), X_test]
+        X_new_b = np.c_[np.ones(X_test.shape[0]), X_test]
         y_predict = X_new_b.dot(w)
-        #print("Prediction is:", y_predict)
-        #print(Y_test)
+        # print("Prediction is:", y_predict)
+        # print("Actual values are:", Y_test)
 
         accuracy = evaluate_prediction_accuracy(y_predict, Y_test, classification_threshold=0.38)
-
+        accuracy_mse = evaluate_prediction(y_predict,Y_test)
+        span_mse.append(accuracy_mse)
         spam_accuracy.append(accuracy)
 
-    print("Individual run accuracy list:", spam_accuracy)
-    print("Mean of accuracy is:", np.mean(spam_accuracy))
+    #print("Individual run accuracy list:", spam_accuracy)
+    #print("Mean of accuracy is:", np.mean(spam_accuracy))
+    print("Mean of the MSE spam:", np.mean(accuracy_mse))
 
 if __name__ == '__main__':
     main()
