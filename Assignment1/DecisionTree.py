@@ -1,11 +1,22 @@
 import random
-import RegressionTree
 import numpy as np
 import math
 import random
 import pandas as pd
 import time
 
+def split_data(dataset, featureColumn, thresholdRow):
+    thresholdValue = dataset[thresholdRow][featureColumn]
+    # print(thresholdValue)
+    # print(featureColumnValues)
+
+    left, right = [], []
+    for row in dataset:
+        if row[featureColumn] <= thresholdValue:
+            left.append(row)
+        else:
+            right.append(row)
+    return left, right
 
 def extract_full_dataset():
     dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
@@ -44,7 +55,7 @@ def leaf_node(data):
         else:
             count_of_ones += 1
 
-    return count_of_ones if (count_of_zeroes < count_of_ones) else count_of_zeroes
+    return 1 if (count_of_zeroes < count_of_ones) else 0
 
 
 def split_tree(node, max_depth, stopping_size, depth):
@@ -105,30 +116,33 @@ def entropy(dataList):
     return (probabilityOfZero * log_reciprocal_zero) + (probabilityOfOne * log_reciprocal_one)
 
 
-def calculate_entropy(left, right, labelValues):
+def calculate_entropy(left, right, len_of_label):
     leftLabelValues = [row[-1] for row in left]
     rightLabelValues = [row[-1] for row in right]
 
     left_entropy = entropy(leftLabelValues)
     right_entropy = entropy(rightLabelValues)
 
-    return (left_entropy * len(leftLabelValues) / len(labelValues)) + (
-                right_entropy * len(rightLabelValues) / len(labelValues))
+    return (left_entropy * len(leftLabelValues) / len_of_label) + (right_entropy * len(rightLabelValues) / len_of_label)
 
 
 def find_best_split(dataset):
-    labelValues = [row[-1] for row in dataset]
+    len_of_label = len([row[-1] for row in dataset])
     minimumEntropy = math.inf
     minimumFeature = 0
     minimumThreshold = 0
     minimumLeft, minimumRight = [], []
     left, right = [], []
-
+    previous = -math.inf
+    dataset= np.array(dataset)
     for j in range(len(dataset[0]) - 1):
+        dataset = dataset[dataset[: , j].argsort()]
         for i in range(len(dataset)):
-            left, right = RegressionTree.split_data(dataset, j, i)
-
-            calculatedEntropy = calculate_entropy(left, right, labelValues)
+            if previous == dataset[i][j]:
+                continue
+            previous = dataset[i][j]
+            left, right = split_data(dataset, j, i)
+            calculatedEntropy = calculate_entropy(left, right, len_of_label)
             if calculatedEntropy < minimumEntropy:
                 minimumEntropy = calculatedEntropy
                 minimumFeature = j
@@ -146,6 +160,7 @@ def build_tree(dataset, max_depth, stopping_size):
     return root_node
 
 def predict(tree_model, test_row):
+
     if test_row[tree_model['feature']] < tree_model['threshold']:
         if isinstance(tree_model['llink'], dict):
             return predict(tree_model['llink'], test_row)
@@ -168,22 +183,24 @@ def test_model(dataset, tree_model):
 def evaluate_prediction_accuracy(predictedValues, actualValues):
     correct_predictions = [i for i, j in zip(predictedValues, actualValues) if i == j]
 
-    return correct_predictions/ len(actualValues)
+    return float(len(correct_predictions))/ len(actualValues) *100
 
 def main():
     start_time = time.time()
     dataset = extract_full_dataset()
     print(dataset.shape)
-    dataset_k_split = kfold_split(4)
+    dataset_k_split = kfold_split(5)
     print(dataset_k_split)
-
+    spam_accuracy = []
+    count =1
     for i in dataset_k_split:
         trainingSet, testingSet = get_training_testing_split(dataset, dataset_k_split, i)
-        maximum_depth = 3
+        trainingSet = trainingSet.values
+        testingSet = testingSet.values
+        maximum_depth = 5
         stopping_size = 10
-        tree_model = build_tree(trainingSet.values, maximum_depth, stopping_size)
-        print("The model is", tree_model)
-        exit()
+        tree_model = build_tree(trainingSet, maximum_depth, stopping_size)
+        #print("The model is", tree_model)
 
         predictedValues = test_model(testingSet, tree_model)
 
@@ -192,9 +209,13 @@ def main():
         print("The actual values for testing set:", actualValues)
 
         accuracy = evaluate_prediction_accuracy(predictedValues, actualValues)
-
-        print("The accuracy of the decision tree model is:", accuracy)
+        spam_accuracy.append(accuracy)
+        print("Trial:", count)
+        count+=1
+        print("The accuracy here is:", accuracy)
     end_time = time.time()
+    print("Individual run accuracy list:", spam_accuracy)
+    print("Mean of accuracy is:", np.mean(spam_accuracy))
     print("The overall time taken is :", end_time - start_time)
 
 
