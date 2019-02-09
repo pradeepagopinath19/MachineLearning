@@ -98,7 +98,7 @@ def main():
     dataset_k_split = kfold_split(5)
     spam_mse = []
     spam_accuracy = []
-
+    training_accuracy =[]
     for i in dataset_k_split:
         trainingSet, testingSet = get_training_testing_split(dataset, dataset_k_split, i)
         # trainingSet =trainingSet.values
@@ -138,9 +138,21 @@ def main():
         # accuracy
         accuracy = evaluate_prediction_accuracy(y_predict, y_test, classification_threshold= 0.38)
         spam_accuracy.append(accuracy)
-        print(accuracy)
-    print(spam_accuracy)
+
+        y_predict = trainingSet.dot(updated_w)
+
+        y_predict = sigmoid(y_predict)
+
+        train_accuracy =evaluate_prediction_accuracy(y_predict, y, classification_threshold= 0.38)
+        training_accuracy.append(train_accuracy)
+        #print(accuracy)
+    print("Test accuracy for runs",spam_accuracy)
+    print("Training accuracy for runs", training_accuracy)
     # print("MSE average is", np.mean(accuracy_mse))
-    print("Accuracy average is", np.mean(spam_accuracy))
+    print("Test accuracy average is", np.mean(spam_accuracy))
+    print("Training error average is", np.mean(training_accuracy))
+
+
+
 if __name__ == "__main__":
     main()
