@@ -82,9 +82,15 @@ def main():
     X_new_b = np.c_[np.ones(X_test.shape[0]), X_test]
     y_predict = X_new_b.dot(w)
 
-    print("Actual values for housing is", Y_test)
-    print("Predicted values are", y_predict)
-    print("MSE for housing is:",evaluate_prediction(y_predict,Y_test))
+    train_y_predict= X_b.dot(w)
+
+
+    #print("Actual values for housing is", Y_test)
+    #print("Predicted values are", y_predict)
+    print("Test mse for housing is:",evaluate_prediction(y_predict,Y_test))
+    print("Train mse for housing is:", evaluate_prediction(train_y_predict, Y))
+
+
 
 
     # Spam section
@@ -95,6 +101,9 @@ def main():
 
     spam_accuracy =[]
     span_mse =[]
+
+    train_accuracy =[]
+    train_mse=[]
     for i in dataset_k_split:
         trainingSet, testingSet = get_training_testing_split(spam_dataset, dataset_k_split, i)
         #trainingSet = np.random.shuffle(trainingSet)
@@ -123,14 +132,25 @@ def main():
         # print("Prediction is:", y_predict)
         # print("Actual values are:", Y_test)
 
+        #training
+        train_y_predict = X_b.dot(w)
+        train_accu= evaluate_prediction_accuracy(train_y_predict, Y, 0.5)
+        train_mse_val= evaluate_prediction(train_y_predict, Y)
+        train_accuracy.append(train_accu)
+        train_mse.append(train_mse_val)
+
         accuracy = evaluate_prediction_accuracy(y_predict, Y_test, 0.5)
         accuracy_mse = evaluate_prediction(y_predict,Y_test)
         span_mse.append(accuracy_mse)
         spam_accuracy.append(accuracy)
 
-    print("Individual run accuracy list:", spam_accuracy)
-    print("Mean of accuracy is:", np.mean(spam_accuracy))
-    print("Mean of the MSE spam:", np.mean(accuracy_mse))
+    print("Testing individual run accuracy list:", spam_accuracy)
+    print("Testing accuracy mean", np.mean(spam_accuracy))
+    #print("Testing MSE", np.mean(accuracy_mse))
+
+    print("Training individual run accuracy list:", train_accuracy)
+    print("Training accuracy mean", np.mean(train_accuracy))
+    #print("Training MSE", np.mean(train_mse))
 
 if __name__ == '__main__':
     main()
