@@ -1,29 +1,38 @@
-from sklearn import preprocessing
-import numpy as np
-import math
 import pandas as pd
-import time
-from matplotlib import pylab
-from pylab import *
+import numpy as np
+from sklearn import preprocessing
 import random
+from random import shuffle, seed
+from numpy import array
+from matplotlib import pylab
+import math
 
-def evaluate_prediction(estimation, trueValues):
-    errorValues = np.array(estimation) - np.array(trueValues)
-    return (np.sum(np.square(errorValues)) / len(errorValues))
+
+def shift_scale_normalization(dataset):
+    rows, cols = dataset.shape
+    for col in range(cols - 2):
+        dataset[:, col] -= abs(dataset[:, col]).min()
+
+    for col in range(cols - 2):
+        dataset[:, col] /= abs(dataset[:, col]).max()
+
+    return dataset
+
 
 def extract_dataset():
     spam_dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
     spam_dataset = pd.read_csv(spam_dataset_url, header=None, sep=',')
-    #np.random.permutation(spam_dataset)
-    return spam_dataset
+    # np.random.shuffle(spam_dataset.values)
+    #df_shuffled = spam_dataset.reindex(np.random.permutation(spam_dataset.index))
+    return spam_dataset.values
+
 
 def kfold_split(k):
     kfold_list = random.sample(range(0, k), k)
     return kfold_list
 
+
 def get_training_testing_split(dataset, split, index):
-    dataset= preprocessing.normalize(dataset)
-    dataset = pd.DataFrame.from_records(dataset)
     k = len(split)
     len_of_k = len(dataset) // k
     starting_row = index * len_of_k
@@ -34,44 +43,41 @@ def get_training_testing_split(dataset, split, index):
     training_data2 = dataset.iloc[ending_row:len(dataset), :]
     training_data = training_data1.append(training_data2, sort=False)
     # print(testing_data)
-
     return training_data.values, testing_data.values
 
-def sigmoid(z):
-  return (1 / (1 + np.exp(-z)))
-  # print(value)
-  # if -value > np.log(np.finfo(type(value)).max):
-  #     return 0.0
-  # a = np.exp(-value)
-  # return 1.0 / (1.0 + a)
-  max_q = max(0.0, np.max(q))
-  rebased_q = q - max_q
-  return np.exp(rebased_q - np.logaddexp(-max_q, np.logaddexp.reduce(rebased_q)))
 
+def sigmoid(z_list):
+    # print(z_list)
+    z_list = np.array(z_list, dtype=np.float64)
+    return (1 / (1 + np.exp(-z_list)))
 
-
-
-def calculate_weights(x, y , w):
-    y = np.matrix(y).T
+def calculate_weights(x, y):
+    x = np.c_[np.ones(x.shape[0]), x]
+    # print(x_b)
+    # print(x_b.shape)
+    w = np.random.normal(size=(x.shape[1], 1))
+    len_of_x = len(x)
+    # y = np.matrix(y).T
     for i in range(100):
         h = sigmoid(x.dot(w))
         deviation = h - y
-        #print("Shape of h", h.shape)
-        #print("shape of y", y.shape)
-        sk = h * (1-h)
-        #print(sk.shape)
-        sk = np.reshape(sk,(len(sk),))
+        # print("Shape of h", h.shape)
+        # print("shape of y", y.shape)
+        sk = h * (1 - h)
+        # print(sk.shape)
+        sk = np.reshape(sk, (len(sk),))
         s = np.diag(sk)
-        #print(x.shape)
-        #print(s.shape)
+        # print(x.shape)
+        # print(s.shape)
         hs = x.T.dot(s.dot(x))
-        #print("SSS",error.shape)
+        # print("SSS",error.shape)
         gk = x.T.dot(deviation)
-        #print(hs.shape, gk.shape)
-        #print(gk)
-        w= w- 0.01 * np.array(pinv(hs).dot(gk))
-    #print(w)
+        # print(hs.shape, gk.shape)
+        # print(gk)
+        w = w - 0.1 *np.array(np.linalg.pinv(hs).dot(gk))
+    # print(w)
     return w
+
 
 def evaluate_prediction_accuracy(predictedValues, actualValues, classification_threshold):
     normalized_prediction = []
@@ -83,75 +89,68 @@ def evaluate_prediction_accuracy(predictedValues, actualValues, classification_t
     correct_predictions = [i for i, j in zip(normalized_prediction, actualValues) if i == j]
     return len(correct_predictions) / len(actualValues) * 100
 
-def shift_scale_normalization(dataset):
-    rows, cols = dataset.shape
-    for col in range(cols-2):
-        dataset[:, col] -= abs(dataset[:, col]).min()
 
-    for col in range(cols-2):
-        dataset[:, col] /= abs(dataset[:, col]).max()
+def evaluate_prediction_accuracy_round(prediction, actual):
+    correct_predictions = [i for i, j in zip(prediction, actual) if i == j]
+    return len(correct_predictions) / len(prediction) * 100
 
-    return pd.DataFrame.from_records(dataset)
 
 def main():
+    #seed(3)
+    scaler = preprocessing.StandardScaler()
     dataset = extract_dataset()
-    dataset_k_split = kfold_split(5)
-    spam_mse = []
+    shuffle(dataset)
+    # print(dataset.shape)
+
+    y = dataset[:, -1]
+    x = dataset[:, 0:dataset.shape[1] - 1]
+    # print(x.shape, y.shape)
+
+    # normalized_ds = shift_scale_normalization(dataset)
+    scaler.fit(x)
+    normalized_x = scaler.transform(x)
+
+    # print(normalized_x)
+
+    y = y[:, None]
+    # print(y.shape)
+
+    spam_dataset = np.append(normalized_x, y, 1)
+    # print("checking",spam_dataset.shape)
+
+    dataframe = pd.DataFrame.from_records(spam_dataset)
+    dataset_k_split = kfold_split(2)
     spam_accuracy = []
-    training_accuracy =[]
+
     for i in dataset_k_split:
-        trainingSet, testingSet = get_training_testing_split(dataset, dataset_k_split, i)
-        # trainingSet =trainingSet.values
-        # testingSet = testingSet.values
-        # Extracting the labels
-        y = [row[-1] for row in trainingSet]
+        trainingSet, testingSet = get_training_testing_split(dataframe, dataset_k_split, i)
+        # print(trainingSet.shape)
+        # print(testingSet.shape)
+        trainX = trainingSet[:, 0:trainingSet.shape[1] - 1]
+        trainY = trainingSet[:, -1]
+        trainY = trainY[:, None]
 
-        # Deleting the labels and just getting the feature values
-        x = np.delete(trainingSet, trainingSet.shape[1] - 1, axis=1)
+        testX = testingSet[:, 0:testingSet.shape[1] - 1]
+        testY = testingSet[:, -1]
+        testY = testY[:, None]
 
-        # Adding bias
-        trainingSet = np.c_[np.ones(x.shape[0]), x]
+        # print(trainX.shape, trainY.shape)
+        # print(testX.shape, testY.shape)
 
+        updated_w = calculate_weights(trainX, trainY)
+        # print(updated_w.shape)
 
+        testX = np.c_[np.ones(testX.shape[0]), testX]
+        y_predict = testX.dot(updated_w)
+        y_sigmoid = np.round(sigmoid(y_predict))
 
-        #print(y, trainingSet,x)
+        #accuracy = evaluate_prediction_accuracy_round(y_sigmoid, testY)
 
-        w = np.random.normal(size=(trainingSet.shape[1], 1))
-
-        updated_w = calculate_weights(trainingSet, y, w)
-        #print(updated_w.shape)
-
-        y_test = [row[-1] for row in testingSet]
-        testingSet = np.delete(testingSet, -1, axis=1)
-        X_new_b = np.c_[np.ones(testingSet.shape[0]), testingSet]
-
-        y_predict = X_new_b.dot(updated_w)
-
-        y_predict = sigmoid(y_predict)
-        # accuracy_mse = evaluate_prediction(y_predict, y_test)
-        # spam_mse.append(accuracy_mse)
-        print(y_predict)
-        print(y_test)
-        # MSE calculation
-
-
-        # accuracy
-        accuracy = evaluate_prediction_accuracy(y_predict, y_test, classification_threshold= 0.38)
+        accuracy = evaluate_prediction_accuracy(y_predict, testY, classification_threshold=0.38)
         spam_accuracy.append(accuracy)
 
-        y_predict = trainingSet.dot(updated_w)
-
-        y_predict = sigmoid(y_predict)
-
-        train_accuracy =evaluate_prediction_accuracy(y_predict, y, classification_threshold= 0.38)
-        training_accuracy.append(train_accuracy)
-        #print(accuracy)
-    print("Test accuracy for runs",spam_accuracy)
-    print("Training accuracy for runs", training_accuracy)
-    # print("MSE average is", np.mean(accuracy_mse))
-    print("Test accuracy average is", np.mean(spam_accuracy))
-    print("Training error average is", np.mean(training_accuracy))
-
+    print("Accuracy for each trial", spam_accuracy)
+    print("Mean accuracy", np.mean(spam_accuracy))
 
 
 if __name__ == "__main__":
