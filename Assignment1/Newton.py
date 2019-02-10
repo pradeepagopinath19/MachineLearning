@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import preprocessing
 import random
 from random import shuffle, seed
+from sklearn.model_selection import train_test_split
 from numpy import array
 from matplotlib import pylab
 import math
@@ -23,7 +24,7 @@ def extract_dataset():
     spam_dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
     spam_dataset = pd.read_csv(spam_dataset_url, header=None, sep=',')
     # np.random.shuffle(spam_dataset.values)
-    #df_shuffled = spam_dataset.reindex(np.random.permutation(spam_dataset.index))
+    # df_shuffled = spam_dataset.reindex(np.random.permutation(spam_dataset.index))
     return spam_dataset.values
 
 
@@ -49,7 +50,8 @@ def get_training_testing_split(dataset, split, index):
 def sigmoid(z_list):
     # print(z_list)
     z_list = np.array(z_list, dtype=np.float64)
-    return (1 / (1 + np.exp(-z_list)))
+    return (1.0 / (1 + np.exp(-z_list)))
+
 
 def calculate_weights(x, y):
     x = np.c_[np.ones(x.shape[0]), x]
@@ -58,7 +60,7 @@ def calculate_weights(x, y):
     w = np.random.normal(size=(x.shape[1], 1))
     len_of_x = len(x)
     # y = np.matrix(y).T
-    for i in range(100):
+    for i in range(1000):
         h = sigmoid(x.dot(w))
         deviation = h - y
         # print("Shape of h", h.shape)
@@ -74,7 +76,7 @@ def calculate_weights(x, y):
         gk = x.T.dot(deviation)
         # print(hs.shape, gk.shape)
         # print(gk)
-        w = w - 0.1 *np.array(np.linalg.pinv(hs).dot(gk))
+        w = w - 0.01 * np.array(np.linalg.pinv(hs).dot(gk))
     # print(w)
     return w
 
@@ -96,7 +98,7 @@ def evaluate_prediction_accuracy_round(prediction, actual):
 
 
 def main():
-    #seed(3)
+    seed(1)
     scaler = preprocessing.StandardScaler()
     dataset = extract_dataset()
     shuffle(dataset)
@@ -119,9 +121,9 @@ def main():
     # print("checking",spam_dataset.shape)
 
     dataframe = pd.DataFrame.from_records(spam_dataset)
-    dataset_k_split = kfold_split(2)
+    dataset_k_split = kfold_split(3)
     spam_accuracy = []
-
+    spam_training_accuracy =[]
     for i in dataset_k_split:
         trainingSet, testingSet = get_training_testing_split(dataframe, dataset_k_split, i)
         # print(trainingSet.shape)
@@ -142,15 +144,22 @@ def main():
 
         testX = np.c_[np.ones(testX.shape[0]), testX]
         y_predict = testX.dot(updated_w)
-        y_sigmoid = np.round(sigmoid(y_predict))
+        y_sigmoid = sigmoid(y_predict)
 
-        #accuracy = evaluate_prediction_accuracy_round(y_sigmoid, testY)
+        trainX = np.c_[np.ones(trainX.shape[0]), trainX]
+        y_predict_train = trainX.dot(updated_w)
+        y_sigmoid_train = sigmoid(y_predict_train)
+        # accuracy = evaluate_prediction_accuracy_round(y_sigmoid, testY)
 
-        accuracy = evaluate_prediction_accuracy(y_predict, testY, classification_threshold=0.38)
-        spam_accuracy.append(accuracy)
+        test_accuracy = evaluate_prediction_accuracy(y_sigmoid, testY, classification_threshold=0.4)
+        spam_accuracy.append(test_accuracy)
+        train_accuracy = evaluate_prediction_accuracy(y_sigmoid_train, trainY, classification_threshold=0.4)
+        spam_training_accuracy.append(train_accuracy)
 
-    print("Accuracy for each trial", spam_accuracy)
-    print("Mean accuracy", np.mean(spam_accuracy))
+    print("Testing accuracy for each trial", spam_accuracy)
+    print("Testing accuracy mean", np.mean(spam_accuracy))
+    print("Training accuracy for each trial", spam_training_accuracy)
+    print("Training accuracy mean", np.mean(spam_training_accuracy))
 
 
 if __name__ == "__main__":
