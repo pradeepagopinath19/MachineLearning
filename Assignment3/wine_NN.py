@@ -10,13 +10,13 @@ class NeuralNetwork:
     def __init__(self, x, y):
         self.hidden_size = 5
         self.input = x
-        self.weights1 = np.random.uniform(self.input.shape[1], self.hidden_size)
-        self.weights2 = np.random.uniform(self.hidden_size, 3)
+        self.weights1 = np.random.rand(self.input.shape[1], self.hidden_size)
+        self.weights2 = np.random.rand(self.hidden_size, 3)
         self.y = y
-        self.layer1 = np.random.uniform(self.input.shape[1], self.hidden_size)
+        self.layer1 = np.random.rand(self.input.shape[1], self.hidden_size)
         self.output = np.zeros(self.y.shape)
-        self.b1 = np.random.uniform(1, self.hidden_size)
-        self.b2 = np.random.uniform(1, self.output.shape[1])
+        self.b1 = np.random.rand(1, self.hidden_size)
+        self.b2 = np.random.rand(1, self.output.shape[1])
         self.loss = 0
 
     def feedforward(self):
@@ -60,7 +60,7 @@ def one_hot(x):
 
 def run_neural_networks():
     epochs = 1000
-    learning_rate = 0.01
+    learning_rate = 0.1
     training, testing = fetchDataset()
 
     X_train = training.iloc[:, 1:training.shape[1]].values
@@ -78,7 +78,7 @@ def run_neural_networks():
     Y_train = list(map(lambda x: one_hot(x), Y_train))
     Y_test = list(map(lambda x:one_hot(x), Y_test))
     Y_train = np.asarray(Y_train)
-
+    Y_test = np.asarray(Y_test)
     #print(Y_test,Y_train)
     nn = NeuralNetwork(X_train, Y_train)
     for _ in range(epochs):
@@ -108,15 +108,29 @@ def run_neural_networks():
         nn.b2 += np.sum(a=d_output, axis=0, keepdims=True) * learning_rate
 
     # print(nn.output)
+    # print(nn.y)
     # print(nn.layer1)
 
-    prediction = np.argmax(nn.output, axis=0)
-    true_value = np.argmax(nn.y, axis=0)
+    prediction = np.argmax(nn.output, axis=1)
+    true_value = np.argmax(nn.y, axis=1)
 
-    print(prediction, true_value)
+    #print(prediction, true_value)
     accuracy = calculate_accuracy(prediction, true_value)
     print('Training accuracy is', accuracy)
 
+    testing_nn = NeuralNetwork(X_test, Y_test)
+    testing_nn.weights1 = nn.weights1
+    testing_nn.weights2 = nn.weights2
+    testing_nn.b1= nn.b1
+    testing_nn.b2 = nn.b2
+    testing_nn.feedforward()
+    #print(testing_nn.output)
+    prediction = np.argmax(testing_nn.output, axis=1)
+    true_value = np.argmax(testing_nn.y, axis=1)
+
+    # print(prediction, true_value)
+    accuracy = calculate_accuracy(prediction, true_value)
+    print('Testing accuracy is', accuracy)
 
 if __name__ == '__main__':
     run_neural_networks()
