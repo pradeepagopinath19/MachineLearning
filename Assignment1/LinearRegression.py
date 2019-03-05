@@ -3,20 +3,24 @@ import pandas as pd
 import random
 import math
 from random import shuffle
-
+from random import shuffle, seed
 
 def shift_scale_normalization(dataset):
     rows, cols = dataset.shape
-    for col in range(cols):
+    for col in range(cols-2):
+        dataset[:, col] -= abs(dataset[:, col]).min()
+
+    for col in range(cols-2):
         dataset[:, col] /= abs(dataset[:, col]).max()
 
+    return pd.DataFrame.from_records(dataset)
 
 
 def extract_full_dataset():
     spam_dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
     spam_dataset = pd.read_csv(spam_dataset_url, header=None, sep=',')
 
-    #spam_dataset = shift_scale_normalization(spam_dataset.values)
+    spam_dataset = shift_scale_normalization(spam_dataset.values)
 
     training_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_train.txt"
     testing_url = "http://www.ccs.neu.edu/home/vip/teach/MLcourse/data/housing_test.txt"
@@ -57,8 +61,11 @@ def evaluate_prediction_accuracy(predictedValues, actualValues, classification_t
     return len(correct_predictions) / len(actualValues) * 100
 
 def main():
+    #seed(1)
     spam_dataset, housing_training, housing_testing = extract_full_dataset()
-
+    shuffle(spam_dataset.values)
+    shuffle(housing_training)
+    shuffle(housing_testing)
     # Housing section
 
     Y_test =[row[-1] for row in housing_testing]
@@ -82,7 +89,7 @@ def main():
 
     # Spam section
 
-    dataset_k_split = kfold_split(3)
+    dataset_k_split = kfold_split(6)
     #print(dataset_k_split)
 
 
@@ -96,7 +103,7 @@ def main():
 
         #trainingSet = random.sample(trainingSet, len(trainingSet))
         #trainingSet = sorted(trainingSet, key=lambda k: random.random())
-        print(trainingSet)
+        #print(trainingSet)
 
         #print(trainingSet)
         Y_test = [row[-1] for row in testingSet]
@@ -116,13 +123,13 @@ def main():
         # print("Prediction is:", y_predict)
         # print("Actual values are:", Y_test)
 
-        accuracy = evaluate_prediction_accuracy(y_predict, Y_test, classification_threshold=0.38)
+        accuracy = evaluate_prediction_accuracy(y_predict, Y_test, 0.5)
         accuracy_mse = evaluate_prediction(y_predict,Y_test)
         span_mse.append(accuracy_mse)
         spam_accuracy.append(accuracy)
 
-    #print("Individual run accuracy list:", spam_accuracy)
-    #print("Mean of accuracy is:", np.mean(spam_accuracy))
+    print("Individual run accuracy list:", spam_accuracy)
+    print("Mean of accuracy is:", np.mean(spam_accuracy))
     print("Mean of the MSE spam:", np.mean(accuracy_mse))
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from numpy import array
 from matplotlib import pylab
 import math
-
+import ConfusionMatrix
 
 def shift_scale_normalization(dataset):
     rows, cols = dataset.shape
@@ -37,7 +37,7 @@ def evaluate_prediction_accuracy(predictedValues, actualValues, classification_t
         else:
             normalized_prediction.append(0)
     correct_predictions = [i for i, j in zip(normalized_prediction, actualValues) if i == j]
-    return len(correct_predictions) / len(actualValues) * 100
+    return len(correct_predictions) / len(actualValues) * 100, normalized_prediction
 
 
 def kfold_split(k):
@@ -102,7 +102,7 @@ def main():
     x_b_training = np.c_[np.ones(train.shape[0]), train]
     train_y_predict = x_b_training.dot(best_w)
     train_y_sigmoid = sigmoid(train_y_predict)
-    train_accu = evaluate_prediction_accuracy(train_y_sigmoid, y_train, 0.4)
+    train_accu, train_normalized_prediction = evaluate_prediction_accuracy(train_y_sigmoid, y_train, 0.4)
     train_accuracy.append(train_accu)
 
     # testing error section
@@ -112,10 +112,20 @@ def main():
     test_y_predict = X_new_testing.dot(best_w)
     test_y_sigmoid = sigmoid(test_y_predict)
     # print(test_y_predict)
-    test_accu = evaluate_prediction_accuracy(test_y_sigmoid, y_test, 0.4)
+    test_accu, test_normalized_prediction = evaluate_prediction_accuracy(test_y_sigmoid, y_test, 0.4)
     spam_accuracy.append(test_accu)
 
+    #print(y_test.shape, test_y_sigmoid.shape)
+    y_test_list =[]
+    test_y_sigmoid_list =[]
 
+    for val in y_test:
+        y_test_list.append(val)
+
+    for val in test_y_sigmoid:
+        test_y_sigmoid_list.append(val)
+
+    ConfusionMatrix.confusion_matrix(y_test_list, test_normalized_prediction, test_y_sigmoid, True)
     print("Training error is", np.mean(train_accuracy))
     print("Testing accuracy is", np.mean(spam_accuracy))
 

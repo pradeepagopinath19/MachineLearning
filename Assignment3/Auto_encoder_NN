@@ -1,0 +1,95 @@
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn import preprocessing
+import math
+from random import shuffle, seed
+
+
+class NeuralNetwork:
+    def __init__(self, x, y):
+        self.input = x
+        self.weights1 = np.random.rand(self.input.shape[1], 3)
+        self.weights2 = np.random.rand(3, 8)
+        self.y = y
+        self.layer1 = np.random.rand(8, 3)
+        self.output = np.zeros(self.y.shape)
+        self.b1 = np.random.rand(1, 3)
+        self.b2 = np.random.rand(1, 8)
+        self.loss = 0
+
+    def feedforward(self):
+        self.layer1 = self.sigmoid(np.add(np.dot(self.input, self.weights1), self.b1))
+        print(self.layer1.shape, self.weights2.shape, self.b2.shape)
+        self.output = self.sigmoid(np.add(np.dot(self.layer1, self.weights2), self.b2))
+
+    def calculate_loss(self):
+        self.loss = self.calculate_mean_square_loss(self.output, self.y)
+
+    def calculate_mean_square_loss(self, estimation, true_values):
+        errorValues = np.array(estimation) - np.array(true_values)
+        sum = np.sum(np.square(errorValues))
+        return np.mean(sum)
+
+    def sigmoid(self, z):
+        return 1 / (1 + np.exp(-z))
+
+    def derivative_sigmoid(self, z):
+        return self.sigmoid(z) * (1 - self.sigmoid(z))
+
+
+def fetchDataset():
+    url = "Auto_encoder.csv"
+    data = pd.read_csv(url, header=None, sep=',')
+    return data
+
+
+def calculate_accuracy(pred, true):
+    correct_predictions = [i for i, j in zip(pred, true) if i == j]
+    return len(correct_predictions) / len(true) * 100
+
+
+def run_neural_networks():
+    epochs = 5000
+    learning_rate = 0.1
+    x = y = fetchDataset()
+    nn = NeuralNetwork(x, y)
+    for _ in range(epochs):
+        # Forward propagation
+        nn.feedforward()
+        nn.calculate_loss()
+        print(nn.loss)
+
+        # Back propagation
+
+        error = nn.y - nn.output
+        slope_output = nn.derivative_sigmoid(nn.output)
+        d_output = error * slope_output
+        error_hidden = d_output.dot(nn.weights2.T)
+
+        slope_hidden = nn.derivative_sigmoid(nn.layer1)
+        d_hidden = error_hidden * slope_hidden
+
+        # updating weights
+
+        nn.weights2 += nn.layer1.T.dot(d_output) * learning_rate
+        nn.weights1 += nn.input.T.dot(d_hidden) * learning_rate
+
+        # updating biases
+
+        nn.b1 += np.sum(a=d_hidden.values, axis=0, keepdims=True) * learning_rate
+        nn.b2 += np.sum(a=d_output.values, axis=0, keepdims=True) * learning_rate
+
+    # print(nn.output)
+    # print(nn.layer1)
+
+    prediction = np.argmax(nn.output, axis=0)
+    true_value = np.argmax(nn.y.values, axis=0)
+
+    #print(prediction, true_value)
+    accuracy = calculate_accuracy(prediction, true_value)
+    print('Accuracy is', accuracy)
+
+
+if __name__ == '__main__':
+    run_neural_networks()
