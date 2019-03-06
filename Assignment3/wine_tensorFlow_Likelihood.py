@@ -66,6 +66,9 @@ def main():
 
     optimizer = tf.train.AdamOptimizer(learning_rate=LR).minimize(loss)
 
+    pred_temp = tf.equal(tf.argmax(output_layer, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
+
     init = tf.initialize_all_variables()
 
     with tf.Session() as sess:
@@ -73,18 +76,19 @@ def main():
         sess.run(init)
 
         for epoch in range(epochs):
-            c = sess.run([optimizer, loss], feed_dict={x: X_train, y: dense_to_one_hot(Y_train, 3)})
-            print("Epoch:", (epoch + 1), "Loss =", c)
+            _, c ,a = sess.run([optimizer, loss, accuracy], feed_dict={x: X_train, y: dense_to_one_hot(Y_train, 3)})
+            print("Epoch:", (epoch + 1), "Loss =", c, "Accuracy =", a)
+            if a == 1.0:
+                break
 
         print("Training complete")
 
-        pred_temp = tf.equal(tf.argmax(output_layer, 1), tf.argmax(y, 1))
-        accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
+        print("Training accuracy is", a * 100)
         print("Test Accuracy:", accuracy.eval({x: X_test.reshape(-1, input_num_units), y: dense_to_one_hot(Y_test, 3)})*100)
 
-        predict = tf.argmax(output_layer, 1)
-
-        pred = predict.eval({x: X_test.reshape(-1, input_num_units)})
+        # predict = tf.argmax(output_layer, 1)
+        #
+        # pred = predict.eval({x: X_test.reshape(-1, input_num_units)})
 
 
 if __name__ == '__main__':

@@ -16,9 +16,7 @@ def extract_dataset():
 
 
 def dense_to_one_hot(y, num_of_units):
-    print(y.shape)
-    a = tf.one_hot(y, 3).eval()
-    print(a.shape)
+    a = tf.one_hot(y, num_of_units).eval()
     return a
 
 
@@ -27,8 +25,10 @@ def main():
     rng = np.random.RandomState(seed)
 
     training, testing = extract_dataset()
+    shuffle(training.values)
+    shuffle(testing.values)
     LR = 0.01
-    epochs = 2000
+    epochs = 750
 
     X_train = training.iloc[:, 1:training.shape[1]].values
     X_test = testing.iloc[:, 1:testing.shape[1]].values
@@ -48,7 +48,7 @@ def main():
     X_test = scaler.transform(X_test)
 
     input_num_units = 13
-    hidden_number = 5
+    hidden_number = 3
     output_num_units = 3
 
     x = tf.placeholder(tf.float32, [None, input_num_units])
@@ -73,6 +73,9 @@ def main():
 
     optimizer = tf.train.AdamOptimizer(learning_rate=LR).minimize(loss)
 
+    pred_temp = tf.equal(tf.argmax(output_layer, 1), tf.argmax(y, 1))
+    accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
+
     init = tf.initialize_all_variables()
 
     with tf.Session() as sess:
@@ -80,14 +83,15 @@ def main():
         sess.run(init)
 
         for epoch in range(epochs):
-            c = sess.run([optimizer, loss], feed_dict={x: X_train, y: dense_to_one_hot(Y_train, 3)})
-            print("Epoch:", (epoch + 1), "Loss =", c)
+            _, c, a = sess.run([optimizer, loss, accuracy], feed_dict={x: X_train, y: dense_to_one_hot(Y_train, 3)})
+            print("Epoch:", (epoch + 1), "Loss =", c, "Accuracy =", a)
+            if a == 1.0:
+                break
 
         print("Training complete")
+        #print("Training accuracy is", a*100)
 
-        pred_temp = tf.equal(tf.argmax(output_layer, 1), tf.argmax(y, 1))
-        accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
-        print("Test Accuracy:", accuracy.eval({x: X_test.reshape(-1, input_num_units), y: dense_to_one_hot(Y_test, 3)})*100)
+        print("Testing accuracy is ", accuracy.eval({x: X_test.reshape(-1, input_num_units), y: dense_to_one_hot(Y_test, 3)})*100)
 
         predict = tf.argmax(output_layer, 1)
         pred = predict.eval({x: X_test.reshape(-1, input_num_units)})

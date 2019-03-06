@@ -124,7 +124,7 @@ def run_neural_networks():
     testing_nn.b1= nn.b1
     testing_nn.b2 = nn.b2
     testing_nn.feedforward()
-    #print(testing_nn.output)
+
     prediction = np.argmax(testing_nn.output, axis=1)
     true_value = np.argmax(testing_nn.y, axis=1)
 
