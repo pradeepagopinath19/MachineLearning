@@ -68,7 +68,6 @@ def build_mean_dictionary(dict):
     return statistics
 
 def calculate_bernoulli_freq(label, feature_num, mean_value, training_collection, greater_than):
-    smoothed_freq = 0
     count = 0
     for instances in training_collection[label]:
         if greater_than:
