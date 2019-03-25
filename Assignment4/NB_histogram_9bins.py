@@ -1,3 +1,4 @@
+# Citation - https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
 import numpy as np
 import pandas as pd
 import random

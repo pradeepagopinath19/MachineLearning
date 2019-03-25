@@ -1,3 +1,4 @@
+# Citation - https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
 import numpy as np
 import pandas as pd
 import random
@@ -136,7 +137,7 @@ def main():
         #print(test_prediction_prob)
 
 
-        ConfusionMatrix.confusion_matrix(testing_y, test_prediction, test_prediction_prob, True)
+        #ConfusionMatrix.confusion_matrix(testing_y, test_prediction, test_prediction_prob, True)
 
         train_accuracy = calculate_accuracy(train_prediction, training_y)
         test_accuracy = calculate_accuracy(test_prediction, testing_y)
