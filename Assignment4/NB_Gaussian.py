@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import random
 import math
+import ConfusionMatrix
 from sklearn.utils import shuffle
 
 
@@ -75,6 +76,7 @@ def calculate_prob(x, mean, variance):
 
 def predict(x, statistics, prob_y_zero, prob_y_one):
     predictions = []
+    predictions_probability = []
     for i in range(len(x)):
         result = calculateClassProbabilities(statistics, x[i])
         result[0.0] *= prob_y_zero
@@ -84,14 +86,15 @@ def predict(x, statistics, prob_y_zero, prob_y_one):
             if bestLabel is None or probability > bestProb:
                 bestProb = probability
                 bestLabel = classValue
+        predictions_probability.append(bestProb)
         predictions.append(bestLabel)
-    return predictions
+    return predictions, predictions_probability
 
 
 def main():
     spam_dataset = extract_full_dataset()
     spam_dataset = shuffle(spam_dataset, random_state=0)
-    dataset_k_split = kfold_split(10)
+    dataset_k_split = kfold_split(2)
 
     full_accuracy_training = []
     full_accuracy_testing = []
@@ -126,8 +129,17 @@ def main():
             statistics[classValue] = summarize(instances)
 
         # Calculating training and testing error
-        train_accuracy = calculate_accuracy(predict(training_x, statistics, prob_zero_y, prob_one_y), training_y)
-        test_accuracy = calculate_accuracy(predict(testing_x, statistics, prob_zero_y, prob_one_y), testing_y)
+        train_prediction, train_prediction_prob = predict(training_x, statistics, prob_zero_y, prob_one_y)
+        test_prediction, test_prediction_prob = predict(testing_x, statistics, prob_zero_y, prob_one_y)
+
+        # Confusion Matrix, ROC, AUC
+        #print(test_prediction_prob)
+
+
+        ConfusionMatrix.confusion_matrix(testing_y, test_prediction, test_prediction_prob, True)
+
+        train_accuracy = calculate_accuracy(train_prediction, training_y)
+        test_accuracy = calculate_accuracy(test_prediction, testing_y)
 
         full_accuracy_training.append(train_accuracy)
         full_accuracy_testing.append(test_accuracy)
