@@ -32,11 +32,11 @@ def main():
     llh = []
 
     # n * k (n : Number of features, k: number_of_classification)
-    mu = np.random.randint(min(X[:, 0]), max(X[:, 0]), size=(number_of_features, number_of_classification))
+    mu = np.random.randint(min(X[:, 0]), max(X[:, 0]), size=(number_of_classification, number_of_features))
     # print(mu.shape)
 
     # n * k * k
-    cov = np.zeros((number_of_features, number_of_classification, number_of_classification))
+    cov = np.zeros((number_of_classification, number_of_features, number_of_features))
     # print(cov)
 
     # [0.33,0.33,0.33]
