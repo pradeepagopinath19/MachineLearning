@@ -3,8 +3,6 @@ import pandas as pd
 import random
 from DecisionStump import DecisionStump
 import math
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
 
@@ -53,15 +51,17 @@ def adaboost_algo(dataset, max_iter):
 
     for _ in range(max_iter):
 
-        previous_threshold = -math.inf
-        min_weighted_error = math.inf
         classifier = DecisionStump()
 
         # Best decision stump
         for j in range(len(dataset[0]) - 1):
             dataset = dataset[dataset[:, j].argsort()]
             y = dataset[:, -1]
+
+            min_weighted_error = math.inf
+            previous_threshold = -math.inf
             best_prediction = []
+
             for i in range(len(dataset)):
                 if previous_threshold == dataset[i][j]:
                     continue
@@ -89,21 +89,48 @@ def adaboost_algo(dataset, max_iter):
                     classifier.threshold = previous_threshold
                     classifier.feature = j
                     classifier.polarity = p
-            classifier.alpha = 0.5 * math.log((1 - min_weighted_error)/min_weighted_error)
-
-            prediction= []
+            classifier.alpha = 0.5 * math.log((1.0 - min_weighted_error) / (min_weighted_error + 1e-12))
 
             if classifier.polarity == -1:
-                prediction = best_prediction * -1
+                prediction = np.multiply(best_prediction, -1)
+
             else:
                 prediction = best_prediction
+
+            prediction = np.array(prediction).reshape(len(prediction), 1)
+
+            y = np.array(y).reshape(len(y), 1)
             # Updating w
 
-            w = w * np.exp(-classifier.alpha * y * prediction)
+            w *= np.exp(classifier.alpha * y * prediction)
 
             w /= np.sum(w)
+
             dec_classifiers.append(classifier)
+            print('Done')
     return dec_classifiers
+
+
+def evaluate_prediction_accuracy(predictedValues, actualValues):
+    correct_predictions = [i for i, j in zip(predictedValues, actualValues) if i == j]
+
+    return float(len(correct_predictions)) / len(actualValues) * 100
+
+
+def predict(classifiers, X):
+    y_pred = np.zeros((len(X), 1))
+
+    for c in classifiers:
+        non_spam_idx = (c.polarity * X[:, c.feature] < c.polarity * c.threshold)
+        #print(non_spam_idx)
+
+        predictions = np.ones((len(X), 1))
+        predictions[non_spam_idx] = -1
+        y_pred += c.alpha * predictions
+
+    return np.sign(y_pred).flatten()
+
+
 
 def main():
     dataset = extract_full_dataset()
@@ -111,10 +138,9 @@ def main():
 
     spam_dataset = shuffle(dataset)
 
-    dataset_k_split = kfold_split(4)
-    number_iterations = 5
+    dataset_k_split = kfold_split(5)
+    number_iterations = 100
 
-    full_accuracy_training = []
     full_accuracy_testing = []
 
     for i in dataset_k_split:
@@ -143,7 +169,12 @@ def main():
         testing_y = testingSet[:, -1]
 
         classifiers = adaboost_algo(trainingSet, number_iterations)
-        print(classifiers[56].polarity)
+        prediction_y = predict(classifiers, testing_x)
+
+        full_accuracy_testing.append(evaluate_prediction_accuracy(testing_y, prediction_y))
+
+    print("Individual run accuracy list:", full_accuracy_testing)
+    print("Mean of accuracy is:", np.mean(full_accuracy_testing))
 
 
 if __name__ == '__main__':
