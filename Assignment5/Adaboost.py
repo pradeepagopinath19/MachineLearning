@@ -32,13 +32,11 @@ def get_training_testing_split(dataset, split, index):
     return training_data, testing_data
 
 
-def make_prediction_from_stump(dataset, feature_number, threshold_val):
-    prediction = []
-    for row in dataset:
-        if row[feature_number] < threshold_val:
-            prediction.append(-1)
-        else:
-            prediction.append(1)
+def make_prediction_from_stump(feature_values, threshold_val):
+    prediction = np.ones((len(feature_values), 1))
+    for i in range(len(feature_values)):
+        if feature_values[i] < threshold_val:
+            prediction[i][0] = -1
 
     return prediction
 
@@ -47,34 +45,26 @@ def adaboost_algo(dataset, max_iter):
     # Initialize weights to 1/n initially
     w = np.ones((len(dataset), 1)) / len(dataset)
 
+    # Last column is the label in the dataset
+    y = dataset[:, -1].reshape((len(dataset), 1))
+
     dec_classifiers = []
 
     for _ in range(max_iter):
 
         classifier = DecisionStump()
+        min_weighted_error = math.inf
 
         # Best decision stump
         for j in range(len(dataset[0]) - 1):
-            dataset = dataset[dataset[:, j].argsort()]
-            y = dataset[:, -1]
 
-            min_weighted_error = math.inf
-            previous_threshold = -math.inf
-            best_prediction = []
+            f_values = dataset[:, j]
+            unique_feature = set(f_values)
 
-            for i in range(len(dataset)):
-                if previous_threshold == dataset[i][j]:
-                    continue
-                previous_threshold = dataset[i][j]
+            for threshold in unique_feature:
+                stump_prediction = make_prediction_from_stump(f_values, threshold)
 
-                stump_prediction = make_prediction_from_stump(dataset, j, previous_threshold)
-
-                index = 0
-                weighted_error = 0
-                for actual, prediction in zip(y, stump_prediction):
-                    if actual != prediction:
-                        weighted_error += w[index]
-                    index += 1
+                weighted_error = sum(w[y != stump_prediction])
 
                 if weighted_error > 0.5:
                     p = -1
@@ -84,30 +74,26 @@ def adaboost_algo(dataset, max_iter):
 
                 if weighted_error < min_weighted_error:
                     min_weighted_error = weighted_error
-                    best_prediction = stump_prediction
 
-                    classifier.threshold = previous_threshold
+                    classifier.threshold = threshold
                     classifier.feature = j
                     classifier.polarity = p
-            classifier.alpha = 0.5 * math.log((1.0 - min_weighted_error) / (min_weighted_error + 1e-12))
+        classifier.alpha = 0.5 * math.log((1.0 - min_weighted_error) / (min_weighted_error + 1e-10))
 
-            if classifier.polarity == -1:
-                prediction = np.multiply(best_prediction, -1)
+        predictions = np.ones(y.shape)
+        negative_idx = (
+                classifier.polarity * dataset[:, classifier.feature] < classifier.polarity * classifier.threshold)
+        predictions[negative_idx] = -1
 
-            else:
-                prediction = best_prediction
+        # Updating w
 
-            prediction = np.array(prediction).reshape(len(prediction), 1)
+        w *= np.exp(classifier.alpha * y * predictions)
 
-            y = np.array(y).reshape(len(y), 1)
-            # Updating w
+        w /= np.sum(w)
 
-            w *= np.exp(classifier.alpha * y * prediction)
+        print("Decision stump done")
+        dec_classifiers.append(classifier)
 
-            w /= np.sum(w)
-
-            dec_classifiers.append(classifier)
-            print('Done')
     return dec_classifiers
 
 
@@ -122,7 +108,7 @@ def predict(classifiers, X):
 
     for c in classifiers:
         non_spam_idx = (c.polarity * X[:, c.feature] < c.polarity * c.threshold)
-        #print(non_spam_idx)
+        # print(non_spam_idx)
 
         predictions = np.ones((len(X), 1))
         predictions[non_spam_idx] = -1
@@ -131,15 +117,13 @@ def predict(classifiers, X):
     return np.sign(y_pred).flatten()
 
 
-
 def main():
     dataset = extract_full_dataset()
-    # print(dataset)
 
     spam_dataset = shuffle(dataset)
 
-    dataset_k_split = kfold_split(5)
-    number_iterations = 100
+    dataset_k_split = kfold_split(2)
+    number_iterations = 50
 
     full_accuracy_testing = []
 
@@ -158,12 +142,10 @@ def main():
                 trainingSet[row_no_training][training_y_col] = -1
 
         testing_y_col = len(testingSet[0]) - 1
+
         for row_no_testing in range(len(testingSet)):
             if testingSet[row_no_testing][testing_y_col] == 0:
                 testingSet[row_no_testing][testing_y_col] = -1
-
-        training_x = trainingSet[:, 0:57]
-        training_y = trainingSet[:, -1]
 
         testing_x = testingSet[:, 0:57]
         testing_y = testingSet[:, -1]
@@ -172,6 +154,7 @@ def main():
         prediction_y = predict(classifiers, testing_x)
 
         full_accuracy_testing.append(evaluate_prediction_accuracy(testing_y, prediction_y))
+        print("K fold done")
 
     print("Individual run accuracy list:", full_accuracy_testing)
     print("Mean of accuracy is:", np.mean(full_accuracy_testing))
