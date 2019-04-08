@@ -234,9 +234,9 @@ def main():
     testing_x = testingSet[:, 0:57]
     testing_y = testingSet[:, -1]
 
-    # classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
+    classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
 
-    classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
+    #classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
 
     prediction_y_train = predict(classifiers, training_x)
     prediction_y_test = predict(classifiers, testing_x)
