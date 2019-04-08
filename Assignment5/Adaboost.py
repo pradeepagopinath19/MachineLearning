@@ -6,6 +6,7 @@ import math
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
+from random import randrange
 
 
 def extract_full_dataset():
@@ -43,6 +44,67 @@ def make_prediction_from_stump(feature_values, threshold_val):
             prediction.append(1)
 
     return prediction
+
+
+def adaboost_algo_random(dataset, y_train, testing_x, testing_y, max_iter):
+    # Initialize weights to 1/n initially
+    w = np.ones(len(dataset)) / len(dataset)
+
+    dec_classifiers = []
+    weighted_error = math.inf
+
+    for iter_number in range(max_iter):
+        classifier = DecisionStump()
+
+        feature = randrange(0, len(dataset[0]) - 2)
+        f_values = dataset[:, feature]
+        unique_feature = set(f_values)
+        unique_feature = list(unique_feature)
+        random_index = randrange(len(unique_feature))
+        threshold_val = unique_feature[random_index]
+        stump_prediction = np.ones((np.shape(y_train)))
+        stump_prediction[f_values < threshold_val] = -1
+        weighted_error = np.sum(w[y_train != stump_prediction])
+
+        if weighted_error > 0.5:
+            p = -1
+            weighted_error = 1 - weighted_error
+        else:
+            p = 1
+        classifier.threshold = threshold_val
+        classifier.feature = feature
+        classifier.polarity = p
+        classifier.alpha = 0.5 * math.log((1.0 - weighted_error) / (weighted_error + 1e-10))
+
+        predictions = np.ones(y_train.shape)
+        negative_idx = (
+                classifier.polarity * dataset[:, classifier.feature] < classifier.polarity * classifier.threshold)
+        predictions[negative_idx] = -1
+
+        # Updating w
+
+        w *= np.exp(-classifier.alpha * y_train * predictions)
+
+        w /= np.sum(w)
+
+        dec_classifiers.append(classifier)
+
+        # Printing and verification after each step
+
+        prediction_y_train = predict(dec_classifiers, dataset[:, 0:57])
+        prediction_y_test = predict(dec_classifiers, testing_x)
+
+        training_accuracy = evaluate_prediction_accuracy(y_train, prediction_y_train)
+        testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
+
+        auc_val = roc_auc_score(testing_y, prediction_y_test)
+
+        print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
+              "Weighted error", weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
+              1 - testing_accuracy,
+              "AUC", auc_val)
+
+    return dec_classifiers
 
 
 def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
@@ -144,6 +206,7 @@ def main():
 
     dataset_k_split = kfold_split(2)
     number_iterations = 100
+    random_number_iterations = 1750
 
     # for i in dataset_k_split:
     # trainingSet, testingSet = get_training_testing_split(spam_dataset, dataset_k_split, i)
@@ -171,7 +234,9 @@ def main():
     testing_x = testingSet[:, 0:57]
     testing_y = testingSet[:, -1]
 
-    classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
+    # classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
+
+    classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
 
     prediction_y_train = predict(classifiers, training_x)
     prediction_y_test = predict(classifiers, testing_x)
