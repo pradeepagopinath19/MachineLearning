@@ -4,6 +4,8 @@ import random
 from DecisionStump import DecisionStump
 import math
 from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
 
 
 def extract_full_dataset():
@@ -33,24 +35,23 @@ def get_training_testing_split(dataset, split, index):
 
 
 def make_prediction_from_stump(feature_values, threshold_val):
-    prediction = np.ones((len(feature_values), 1))
+    prediction = []
     for i in range(len(feature_values)):
         if feature_values[i] < threshold_val:
-            prediction[i][0] = -1
+            prediction.append(-1)
+        else:
+            prediction.append(1)
 
     return prediction
 
 
-def adaboost_algo(dataset, max_iter):
+def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
     # Initialize weights to 1/n initially
-    w = np.ones((len(dataset), 1)) / len(dataset)
-
-    # Last column is the label in the dataset
-    y = dataset[:, -1].reshape((len(dataset), 1))
+    w = np.ones(len(dataset)) / len(dataset)
 
     dec_classifiers = []
 
-    for _ in range(max_iter):
+    for iter_number in range(max_iter):
 
         classifier = DecisionStump()
         min_weighted_error = math.inf
@@ -62,9 +63,11 @@ def adaboost_algo(dataset, max_iter):
             unique_feature = set(f_values)
 
             for threshold in unique_feature:
-                stump_prediction = make_prediction_from_stump(f_values, threshold)
+                # stump_prediction = make_prediction_from_stump(f_values, threshold)
+                stump_prediction = np.ones((np.shape(y_train)))
+                stump_prediction[f_values < threshold] = -1
 
-                weighted_error = sum(w[y != stump_prediction])
+                weighted_error = np.sum(w[y_train != stump_prediction])
 
                 if weighted_error > 0.5:
                     p = -1
@@ -80,19 +83,33 @@ def adaboost_algo(dataset, max_iter):
                     classifier.polarity = p
         classifier.alpha = 0.5 * math.log((1.0 - min_weighted_error) / (min_weighted_error + 1e-10))
 
-        predictions = np.ones(y.shape)
+        predictions = np.ones(y_train.shape)
         negative_idx = (
                 classifier.polarity * dataset[:, classifier.feature] < classifier.polarity * classifier.threshold)
         predictions[negative_idx] = -1
 
         # Updating w
 
-        w *= np.exp(classifier.alpha * y * predictions)
+        w *= np.exp(-classifier.alpha * y_train * predictions)
 
         w /= np.sum(w)
 
-        print("Decision stump done")
         dec_classifiers.append(classifier)
+
+        # Printing and verification after each step
+
+        prediction_y_train = predict(dec_classifiers, dataset[:, 0:57])
+        prediction_y_test = predict(dec_classifiers, testing_x)
+
+        training_accuracy = evaluate_prediction_accuracy(y_train, prediction_y_train)
+        testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
+
+        auc_val = roc_auc_score(testing_y, prediction_y_test)
+
+        print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
+              "Weighted error", min_weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
+              1 - testing_accuracy,
+              "AUC", auc_val)
 
     return dec_classifiers
 
@@ -100,7 +117,7 @@ def adaboost_algo(dataset, max_iter):
 def evaluate_prediction_accuracy(predictedValues, actualValues):
     correct_predictions = [i for i, j in zip(predictedValues, actualValues) if i == j]
 
-    return float(len(correct_predictions)) / len(actualValues) * 100
+    return float(len(correct_predictions)) / len(actualValues)
 
 
 def predict(classifiers, X):
@@ -119,45 +136,54 @@ def predict(classifiers, X):
 
 def main():
     dataset = extract_full_dataset()
+    dataset = dataset.values
+    X = dataset[:, 0:57]
+    y = dataset[:, -1]
 
     spam_dataset = shuffle(dataset)
 
     dataset_k_split = kfold_split(2)
-    number_iterations = 50
+    number_iterations = 100
 
-    full_accuracy_testing = []
+    # for i in dataset_k_split:
+    # trainingSet, testingSet = get_training_testing_split(spam_dataset, dataset_k_split, i)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+    trainingSet = np.column_stack((X_train, y_train))
+    testingSet = np.column_stack((X_test, y_test))
 
-    for i in dataset_k_split:
-        trainingSet, testingSet = get_training_testing_split(spam_dataset, dataset_k_split, i)
+    # {1,-1}
 
-        trainingSet = trainingSet.values
-        testingSet = testingSet.values
+    training_y_col = len(trainingSet[0]) - 1
 
-        # {1,-1}
+    for row_no_training in range(len(trainingSet)):
+        if trainingSet[row_no_training][training_y_col] == 0:
+            trainingSet[row_no_training][training_y_col] = -1
 
-        training_y_col = len(trainingSet[0]) - 1
+    testing_y_col = len(testingSet[0]) - 1
 
-        for row_no_training in range(len(trainingSet)):
-            if trainingSet[row_no_training][training_y_col] == 0:
-                trainingSet[row_no_training][training_y_col] = -1
+    for row_no_testing in range(len(testingSet)):
+        if testingSet[row_no_testing][testing_y_col] == 0:
+            testingSet[row_no_testing][testing_y_col] = -1
 
-        testing_y_col = len(testingSet[0]) - 1
+    training_x = trainingSet[:, 0:57]
+    training_y = trainingSet[:, -1]
 
-        for row_no_testing in range(len(testingSet)):
-            if testingSet[row_no_testing][testing_y_col] == 0:
-                testingSet[row_no_testing][testing_y_col] = -1
+    testing_x = testingSet[:, 0:57]
+    testing_y = testingSet[:, -1]
 
-        testing_x = testingSet[:, 0:57]
-        testing_y = testingSet[:, -1]
+    classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
 
-        classifiers = adaboost_algo(trainingSet, number_iterations)
-        prediction_y = predict(classifiers, testing_x)
+    prediction_y_train = predict(classifiers, training_x)
+    prediction_y_test = predict(classifiers, testing_x)
 
-        full_accuracy_testing.append(evaluate_prediction_accuracy(testing_y, prediction_y))
-        print("K fold done")
+    training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
+    testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
 
-    print("Individual run accuracy list:", full_accuracy_testing)
-    print("Mean of accuracy is:", np.mean(full_accuracy_testing))
+    print("Testing accuracy is:", testing_accuracy)
+    print("Testing error rate is:", 1 - testing_accuracy)
+
+    print("Training accuracy is:", training_accuracy)
+    print("Training error rate is:", 1 - training_accuracy)
 
 
 if __name__ == '__main__':
