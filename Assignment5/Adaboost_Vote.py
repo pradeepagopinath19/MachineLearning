@@ -22,8 +22,9 @@ def extract_full_dataset(url):
 
 def main():
     number_iterations = 100
-    dataset = extract_full_dataset("http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.data")
-    
+    dataset = extract_full_dataset(
+        "http://archive.ics.uci.edu/ml/machine-learning-databases/voting-records/house-votes-84.data")
+
     # Data pre processing
     # Replace ? with np.nan values in X of the dataset
     dataset.replace("?", np.nan, inplace=True)
@@ -35,7 +36,7 @@ def main():
     # Label encoding to handle non numeric values
     lb_encoding = LabelEncoder()
 
-    for col in range(len(dataset[0]) - 1):
+    for col in range(1, len(dataset[0]), 1):
         value = dataset[0][col]
         # Numeric type values are not encoded
         if type(value) == int or type(value) == float or '.' in value:
@@ -46,18 +47,20 @@ def main():
     # Shuffling
     dataset = shuffle(dataset)
 
-    X = dataset[:, 0:len(dataset[0]) - 1]
+    X = dataset[:, 1:len(dataset[0])]
 
-    y = dataset[:, -1]
+    y = dataset[:, 0]
 
     # {+1, -1}
     for i in range(len(y)):
-        if y[i] == '+':
+        if y[i] == 'republican':
             y[i] = +1
         else:
             y[i] = -1
-
     dataset = np.column_stack((X, y))
+
+    print(X, y)
+    print(dataset)
 
     # Converting objects to floats for the program to work.
 
@@ -67,18 +70,18 @@ def main():
     y = dataset[:, -1]
     y = np.array(list(y), dtype=np.float)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1)
     trainingSet = np.column_stack((X_train, y_train))
     testingSet = np.column_stack((X_test, y_test))
 
-    index_five = np.random.randint(len(trainingSet)-1, size=int(0.05 * len(trainingSet)))
-    index_fifty = np.random.randint(len(trainingSet)-1, size=int(0.5 * len(trainingSet)))
+    index_five = np.random.randint(len(trainingSet) - 1, size=int(0.05 * len(trainingSet)))
+    index_fifty = np.random.randint(len(trainingSet) - 1, size=int(0.5 * len(trainingSet)))
 
     # 5% dataset or 50% dataset
 
-    #trainingSet = trainingSet[index_five, :]
+    trainingSet = trainingSet[index_five, :]
 
-    trainingSet = trainingSet[index_fifty, :]
+    #trainingSet = trainingSet[index_fifty, :]
 
     training_x = trainingSet[:, 0:len(trainingSet[0]) - 1]
     training_y = trainingSet[:, -1]

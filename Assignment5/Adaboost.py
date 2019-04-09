@@ -151,7 +151,8 @@ def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
         predictions[negative_idx] = -1
 
         # Updating w
-
+        #print(w.shape, y_train.shape, predictions.shape)
+        print(type(w), type(y_train), type(predictions))
         w *= np.exp(-classifier.alpha * y_train * predictions)
 
         w /= np.sum(w)
@@ -236,7 +237,7 @@ def main():
 
     classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
 
-    #classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
+    # classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
 
     prediction_y_train = predict(classifiers, training_x)
     prediction_y_test = predict(classifiers, testing_x)
