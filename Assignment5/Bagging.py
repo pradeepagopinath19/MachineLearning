@@ -38,7 +38,7 @@ def main():
     trainingSet = np.column_stack((X_train, y_train))
     testingSet = np.column_stack((X_test, y_test))
 
-    length_X_60 = int(0.1 * len(X_train))
+    length_X_60 = int(0.3 * len(X_train))
 
     decision_trees = []
 
