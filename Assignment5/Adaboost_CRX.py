@@ -86,7 +86,7 @@ def main():
     testing_x = testingSet[:, 0:len(trainingSet[0]) - 1]
     testing_y = testingSet[:, -1]
 
-    classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
+    classifiers, auc, training_error, testing_error, round_error= adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
 
     prediction_y_train = predict(classifiers, training_x)
     prediction_y_test = predict(classifiers, testing_x)
