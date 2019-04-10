@@ -27,7 +27,7 @@ def main_child():
     training_dataset, testing_dataset = fetch_dataset()
 
     # Deep copy to save the original copy
-    unchanged_dataset = np.copy(training_dataset)
+    original_training_dataset = np.copy(training_dataset)
     num_of_iterations = 10
     depth = 2
     stopping_size = 10
@@ -43,17 +43,20 @@ def main_child():
 
     # Prediction
     predictedValues = []
-    for tree in regression_trees:
-        predictedValues = add_two_lists(predictedValues, test_model(unchanged_dataset, tree))
+    for i, tree in enumerate(regression_trees):
+        print("Round", i, "Predicted values", predictedValues)
+        predictedValues = add_two_lists(predictedValues, test_model(original_training_dataset, tree))
 
-    print(len(predictedValues))
-    print(len(unchanged_dataset[:,-1]))
-    evaluateModel_mse_training = evaluate_prediction(predictedValues, training_dataset)
+    evaluateModel_mse_training = evaluate_prediction(predictedValues, original_training_dataset)
+    print("True values", original_training_dataset[:, -1])
     print("The calculated MSE for training dataset is", evaluateModel_mse_training)
 
     predictedValues = []
-    for tree in regression_trees:
+    for i, tree in enumerate(regression_trees):
+        print("Round", i, "Predicted values", predictedValues)
         predictedValues = add_two_lists(predictedValues, test_model(testing_dataset, tree))
+
+    print("True values", testing_dataset[:, -1])
 
     evaluateModel_mse_testing = evaluate_prediction(predictedValues, testing_dataset)
     print("The calculated MSE for testing dataset is", evaluateModel_mse_testing)
