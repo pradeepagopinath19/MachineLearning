@@ -7,6 +7,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 from random import randrange
+import matplotlib.pyplot as plt
 
 
 def extract_full_dataset():
@@ -108,6 +109,12 @@ def adaboost_algo_random(dataset, y_train, testing_x, testing_y, max_iter):
 
 
 def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
+    # For plotting
+    auc_values = []
+    testing_error_values = []
+    training_error_values = []
+    round_error_values = []
+
     # Initialize weights to 1/n initially
     w = np.ones(len(dataset)) / len(dataset)
 
@@ -151,8 +158,8 @@ def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
         predictions[negative_idx] = -1
 
         # Updating w
-        #print(w.shape, y_train.shape, predictions.shape)
-        print(type(w), type(y_train), type(predictions))
+        # print(w.shape, y_train.shape, predictions.shape)
+        # print(type(w), type(y_train), type(predictions))
         w *= np.exp(-classifier.alpha * y_train * predictions)
 
         w /= np.sum(w)
@@ -173,8 +180,11 @@ def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
               "Weighted error", min_weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
               1 - testing_accuracy,
               "AUC", auc_val)
-
-    return dec_classifiers
+        auc_values.append(auc_val)
+        round_error_values.append(min_weighted_error)
+        training_error_values.append(1 - training_accuracy)
+        testing_error_values.append(1 - testing_accuracy)
+    return dec_classifiers, auc_values, training_error_values, testing_error_values, round_error_values
 
 
 def evaluate_prediction_accuracy(predictedValues, actualValues):
@@ -235,7 +245,8 @@ def main():
     testing_x = testingSet[:, 0:57]
     testing_y = testingSet[:, -1]
 
-    classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, number_iterations)
+    classifiers, auc, training_error, testing_error, round_error = adaboost_algo(trainingSet, training_y, testing_x,
+                                                                                 testing_y, number_iterations)
 
     # classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
 
@@ -251,6 +262,27 @@ def main():
     print("Training accuracy is:", training_accuracy)
     print("Training error rate is:", 1 - training_accuracy)
 
+    iterations = [i for i in range(100)]
+
+    # Plotting
+    # AUC values
+
+    plt.plot(iterations, auc)
+    plt.ylabel("AUC")
+    plt.xlabel("Number of iterations")
+    plt.show()
+
+    # Testing, training errors
+    plt.plot(iterations, testing_error, 'r--', iterations, training_error, 'bs')
+    plt.ylabel("testing and training erros")
+    plt.xlabel("Number of iterations")
+    plt.show()
+
+    # Round weighted error
+    plt.plot(iterations, round_error)
+    plt.ylabel("Round error(Weighed)")
+    plt.xlabel("Number of iterations")
+    plt.show()
 
 if __name__ == '__main__':
     main()
