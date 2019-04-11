@@ -133,7 +133,7 @@ def predict_and_fetch_threshold_datapoints(classifiers, X):
 
 
 def main():
-    number_iterations = 5
+    number_iterations = 25
 
     dataset = extract_full_dataset()
     dataset = shuffle(dataset)
