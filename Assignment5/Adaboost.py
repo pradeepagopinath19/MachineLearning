@@ -245,10 +245,10 @@ def main():
     testing_x = testingSet[:, 0:57]
     testing_y = testingSet[:, -1]
 
-    # classifiers, auc, training_error, testing_error, round_error = adaboost_algo(trainingSet, training_y, testing_x,
-    #                                                                              testing_y, number_iterations)
+    classifiers, auc, training_error, testing_error, round_error = adaboost_algo(trainingSet, training_y, testing_x,
+                                                                                 testing_y, number_iterations)
 
-    classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
+    #classifiers = adaboost_algo_random(trainingSet, training_y, testing_x, testing_y, random_number_iterations)
 
     prediction_y_train = predict(classifiers, training_x)
     prediction_y_test = predict(classifiers, testing_x)
@@ -267,22 +267,22 @@ def main():
     # Plotting
     # AUC values
 
-    # plt.plot(iterations, auc)
-    # plt.ylabel("AUC")
-    # plt.xlabel("Number of iterations")
-    # plt.show()
-    #
-    # # Testing, training errors
-    # plt.plot(iterations, testing_error, 'r--', iterations, training_error, 'bs')
-    # plt.ylabel("testing and training erros")
-    # plt.xlabel("Number of iterations")
-    # plt.show()
-    #
-    # # Round weighted error
-    # plt.plot(iterations, round_error)
-    # plt.ylabel("Round error(Weighed)")
-    # plt.xlabel("Number of iterations")
-    # plt.show()
+    plt.plot(iterations, auc)
+    plt.ylabel("AUC")
+    plt.xlabel("Number of iterations")
+    plt.show()
+
+    # Testing, training errors
+    plt.plot(iterations, testing_error, 'r--', iterations, training_error, 'bs')
+    plt.ylabel("testing and training erros")
+    plt.xlabel("Number of iterations")
+    plt.show()
+
+    # Round weighted error
+    plt.plot(iterations, round_error)
+    plt.ylabel("Round error(Weighed)")
+    plt.xlabel("Number of iterations")
+    plt.show()
 
 if __name__ == '__main__':
     main()
