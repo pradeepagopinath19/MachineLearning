@@ -115,7 +115,6 @@ def predict_and_fetch_threshold_datapoints(classifiers, X):
         predictions[non_spam_idx] = -1
         y_pred += c.alpha * predictions
 
-    print(y_pred)
 
     len_dataset_to_be_added = int(0.02 * len(y_pred))
     dataset_indices_to_be_added = []
@@ -148,18 +147,25 @@ def main():
         if dataset[row_no_training][training_y_col] == 0:
             dataset[row_no_training][training_y_col] = -1
 
+    X = dataset[:, 0:57]
+    y = dataset[:, -1]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+    trainingSet = np.column_stack((X_train, y_train))
+    testingSet = np.column_stack((X_test, y_test))
+
     # initial 5 percent dataset
 
-    n = len(dataset)
+    n = len(trainingSet)
     n_five_percent = int(0.05 * n)
 
     index_of_selected_dataset = random.sample(range(n), n_five_percent)
 
-    selected_dataset = np.copy(dataset[index_of_selected_dataset, :])
+    selected_dataset = np.copy(trainingSet[index_of_selected_dataset, :])
 
-    # Deleting the selected data points from the original dataset
+    # Deleting the selected data points from training dataset
 
-    testing_dataset = np.delete(dataset, index_of_selected_dataset, 0)
+    residual_training_dataset = np.delete(trainingSet, index_of_selected_dataset, 0)
 
     # print(selected_dataset.shape, dataset.shape)
 
@@ -167,39 +173,34 @@ def main():
         training_x = selected_dataset[:, 0:57]
         training_y = selected_dataset[:, -1]
 
-        testing_x = testing_dataset[:, 0:57]
-        testing_y = testing_dataset[:, -1]
-
-        classifier = adaboost_algo(selected_dataset, training_y, testing_x, testing_y, number_iterations)
+        classifier = adaboost_algo(selected_dataset, training_y, X_test, y_test, number_iterations)
 
         # Mutating list index_of_selected_dataset here
 
-        indices_to_be_considered = predict_and_fetch_threshold_datapoints(classifier, testing_dataset)
+        indices_to_be_considered = predict_and_fetch_threshold_datapoints(classifier, residual_training_dataset)
 
-        dataset_to_be_added = testing_dataset[indices_to_be_considered, :]
+        dataset_to_be_added = residual_training_dataset[indices_to_be_considered, :]
         selected_dataset = np.row_stack((selected_dataset, dataset_to_be_added))
-        testing_dataset = np.delete(testing_dataset, indices_to_be_considered, 0)
+        residual_training_dataset = np.delete(residual_training_dataset, indices_to_be_considered, 0)
 
     # Training accuracy and error
-    prediction_y_train = predict(classifier, selected_dataset[:, 0:57])
-    training_accuracy = evaluate_prediction_accuracy(selected_dataset[:,-1], prediction_y_train)
+    prediction_y_train = predict(classifier, X_train)
+    training_accuracy = evaluate_prediction_accuracy(y_train, prediction_y_train)
 
     print("Training accuracy is:", training_accuracy)
     print("Training error rate is:", 1 - training_accuracy)
 
-
     # Testing accuracy and error
-    prediction_y_test = predict(classifier, testing_dataset[:, 0:57])
-    testing_accuracy = evaluate_prediction_accuracy(testing_dataset[:, -1], prediction_y_test)
+    prediction_y_test = predict(classifier, X_test)
+    testing_accuracy = evaluate_prediction_accuracy(y_test, prediction_y_test)
 
     print("Testing accuracy is:", testing_accuracy)
     print("Testing error rate is:", 1 - testing_accuracy)
 
-
     # Overall accuracy of dataset
 
-    prediction_y_overall = predict(classifier, dataset[:, 0:57])
-    overall_accuracy = evaluate_prediction_accuracy(dataset[:, -1], prediction_y_overall)
+    prediction_y_overall = predict(classifier, X)
+    overall_accuracy = evaluate_prediction_accuracy(y, prediction_y_overall)
 
     print("Overall accuracy is:", overall_accuracy)
     print("Overall error rate is:", 1 - overall_accuracy)
