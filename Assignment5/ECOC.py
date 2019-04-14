@@ -11,8 +11,140 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import roc_auc_score
 from random import randrange
-from Adaboost import adaboost_algo, adaboost_algo_random, predict, evaluate_prediction_accuracy
+from Adaboost import predict, evaluate_prediction_accuracy
 import collections
+
+
+def adaboost_algo_random(x_train, y_train, testing_x, testing_y, max_iter):
+    # Initialize weights to 1/n initially
+    w = np.ones(len(x_train)) / len(x_train)
+
+    dec_classifiers = []
+    weighted_error = math.inf
+
+    for iter_number in range(max_iter):
+        print("Round", iter_number)
+        classifier = DecisionStump()
+
+        feature = randrange(0, len(x_train[0]))
+        f_values = x_train[:, feature]
+        unique_feature = set(f_values)
+        unique_feature = list(unique_feature)
+        random_index = randrange(len(unique_feature))
+        threshold_val = unique_feature[random_index]
+        stump_prediction = np.ones((np.shape(y_train)))
+        stump_prediction[f_values < threshold_val] = -1
+        weighted_error = np.sum(w[y_train != stump_prediction])
+
+        if weighted_error > 0.5:
+            p = -1
+            weighted_error = 1 - weighted_error
+        else:
+            p = 1
+        classifier.threshold = threshold_val
+        classifier.feature = feature
+        classifier.polarity = p
+        classifier.alpha = 0.5 * math.log((1.0 - weighted_error) / (weighted_error + 1e-10))
+
+        predictions = np.ones(y_train.shape)
+        negative_idx = (
+                classifier.polarity * x_train[:, classifier.feature] < classifier.polarity * classifier.threshold)
+        predictions[negative_idx] = -1
+
+        # Updating w
+
+        w *= np.exp(-classifier.alpha * y_train * predictions)
+
+        w /= np.sum(w)
+
+        dec_classifiers.append(classifier)
+
+        # Printing and verification after each step
+
+        # prediction_y_train = predict(dec_classifiers, x_train)
+        # prediction_y_test = predict(dec_classifiers, testing_x)
+
+        # training_accuracy = evaluate_prediction_accuracy(y_train, prediction_y_train)
+        # testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
+
+        # auc_val = roc_auc_score(testing_y, prediction_y_test)
+
+        # print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
+        #       "Weighted error", weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
+        #       1 - testing_accuracy,
+        #       "AUC", auc_val)
+
+    return dec_classifiers
+
+
+def adaboost_algo_interval(training_x, training_y, testing_x, testing_y, max_iter):
+    # Initialize weights to 1/n initially
+    w = np.ones(len(training_x)) / len(training_x)
+
+    dec_classifiers = []
+
+    for iter_number in range(max_iter):
+
+        classifier = DecisionStump()
+        min_weighted_error = math.inf
+
+        # Best decision stump
+        for j in range(len(training_x[0])):
+
+            f_values = training_x[:, j]
+            unique_feature = set(f_values)
+            unique_feature_linespace = np.linspace(min(unique_feature), max(unique_feature), num=4)
+
+            for threshold in unique_feature_linespace:
+                stump_prediction = np.ones((np.shape(training_y)))
+                stump_prediction[f_values < threshold] = -1
+
+                weighted_error = np.sum(w[training_y != stump_prediction])
+
+                if weighted_error > 0.5:
+                    p = -1
+                    weighted_error = 1 - weighted_error
+                else:
+                    p = 1
+
+                if weighted_error < min_weighted_error:
+                    min_weighted_error = weighted_error
+
+                    classifier.threshold = threshold
+                    classifier.feature = j
+                    classifier.polarity = p
+        classifier.alpha = 0.5 * math.log((1.0 - min_weighted_error) / (min_weighted_error + 1e-10))
+
+        predictions = np.ones(training_y.shape)
+        negative_idx = (
+                classifier.polarity * training_x[:, classifier.feature] < classifier.polarity * classifier.threshold)
+        predictions[negative_idx] = -1
+
+        # Updating w
+        # print(w.shape, y_train.shape, predictions.shape)
+        # print(type(w), type(y_train), type(predictions))
+        w *= np.exp(-classifier.alpha * training_y * predictions)
+
+        w /= np.sum(w)
+
+        dec_classifiers.append(classifier)
+
+        # Printing and verification after each step
+
+        # prediction_y_train = predict(dec_classifiers, training_x)
+        # prediction_y_test = predict(dec_classifiers, testing_x)
+        #
+        # training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
+        # testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
+        #
+        # auc_val = roc_auc_score(testing_y, prediction_y_test)
+        #
+        # print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
+        #       "Weighted error", min_weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
+        #       1 - testing_accuracy,
+        #       "AUC", auc_val)
+
+    return dec_classifiers
 
 
 def adaboost_algo(training_x, training_y, testing_x, testing_y, max_iter):
@@ -145,7 +277,7 @@ def fetch_minimum_distance(test_prediction, label_code):
 
 def main():
     # Extracting dataset and label encoding
-    number_iterations = 100
+    number_iterations = 40
 
     training_data, testing_data = extract_full_dataset()
     training_data = shuffle(training_data)
@@ -160,13 +292,13 @@ def main():
     training_data = np.delete(training_data, -1, 1)
     training_data = np.column_stack((training_data, train_label))
 
-    # print(training_data.shape)
+    print(training_data.shape)
 
-    test_label = []
-    for val in testing_data[:, -1]:
-        test_label.append(label_code[int(val)])
-    testing_data = np.delete(testing_data, -1, 1)
-    testing_data = np.column_stack((testing_data, test_label))
+    # test_label = []
+    # for val in testing_data[:, -1]:
+    #     test_label.append(label_code[int(val)])
+    # testing_data = np.delete(testing_data, -1, 1)
+    # testing_data = np.column_stack((testing_data, test_label))
 
     # print(testing_data.shape)
 
@@ -177,11 +309,11 @@ def main():
             if training_data[row][col] == 0.0:
                 training_data[row][col] = - 1.0
 
-    for row in range(len(testing_data)):
-        for col in range(-1, -21, -1):
-            if testing_data[row][col] == 0.0:
-                testing_data[row][col] = - 1.0
-    print(testing_data.shape)
+    # for row in range(len(testing_data)):
+    #     for col in range(-1, -21, -1):
+    #         if testing_data[row][col] == 0.0:
+    #             testing_data[row][col] = - 1.0
+    # print(testing_data.shape)
 
     training_x = np.copy(training_data[:, 0:-20])
     testing_x = np.copy(testing_data[:, 0:-20])
@@ -191,16 +323,19 @@ def main():
 
     for i in range(20, 0, -1):
         training_y = np.copy(training_data[:, -i])
-        testing_y = np.copy(testing_data[:, -i])
+        #testing_y = np.copy(testing_data[:, -i])
+        testing_y = []
+        #classifiers = adaboost_algo(training_x, training_y, testing_x, testing_y, number_iterations)
+        # classifiers = adaboost_algo_random(training_x, training_y, testing_x, testing_y, number_iterations)
 
-        classifiers = adaboost_algo(training_x, training_y, testing_x, testing_y, number_iterations)
-        #prediction_y_train = predict(classifiers, training_x)
+        classifiers = adaboost_algo_interval(training_x, training_y, testing_x, testing_y, number_iterations)
+        # prediction_y_train = predict(classifiers, training_x)
         prediction_y_test = predict(classifiers, testing_x)
 
-        #train_prediction_array.append(prediction_y_train)
+        # train_prediction_array.append(prediction_y_train)
         test_prediction_array.append(prediction_y_test)
 
-        #training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
+        # training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
         # testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
         #
         # print("Testing accuracy for ", -i, "is:", testing_accuracy)
