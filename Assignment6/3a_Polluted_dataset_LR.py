@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.utils import shuffle
 from sklearn import preprocessing
 from scipy.stats import logistic
+import math
 
 
 def shift_scale_normalization(dataset):
@@ -51,7 +52,7 @@ def main():
     trainingSet, testingSet = extract_full_dataset()
 
     # shuffle
-    trainingSet = shuffle(trainingSet)
+    # trainingSet = shuffle(trainingSet)
 
     # print(trainingSet.shape, testingSet.shape)
     y_test = testingSet[:, -1]
@@ -106,16 +107,18 @@ def main():
 
 def gradient_descent(X, y):
     alpha = 0.01
-    iterations = 1500
-    n = X.shape[0]
+    iterations = 1000
+    m = X.shape[0]
+    n = X.shape[1]
 
     X = np.c_[np.ones((len(X), 1)), X]
-    w = np.random.normal(size=(X.shape[1], 1))
+    limit = math.sqrt(1 / n)
+    w = np.random.uniform(-limit, limit, size=(X.shape[1], 1))
 
     h_w = sigmoid(X.dot(w))
 
     for _ in range(iterations):
-        w = w + ((alpha / n) * (X.T.dot(y - h_w)))
+        w = w + ((alpha / m) * (X.T.dot(y - h_w)))
     return w
 
 
