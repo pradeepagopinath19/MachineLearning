@@ -4,6 +4,7 @@ from sklearn.utils import shuffle
 from sklearn import preprocessing
 from scipy.stats import logistic
 import math
+from scipy import special
 
 
 def shift_scale_normalization(dataset):
@@ -79,7 +80,7 @@ def main():
     # training error section
     x_b_training = np.c_[np.ones(x_train.shape[0]), x_train]
     train_y_predict = x_b_training.dot(best_w)
-    train_y_sigmoid = sigmoid(train_y_predict)
+    train_y_sigmoid = sigmoid_special(train_y_predict)
     train_accu, train_normalized_prediction = evaluate_prediction_accuracy(train_y_sigmoid, y_train, 0.4)
 
     # testing error section
@@ -87,7 +88,7 @@ def main():
     # testing error section
     X_new_testing = np.c_[np.ones(x_test.shape[0]), x_test]
     test_y_predict = X_new_testing.dot(best_w)
-    test_y_sigmoid = sigmoid(test_y_predict)
+    test_y_sigmoid = sigmoid_special(test_y_predict)
     print(test_y_predict)
     test_accu, test_normalized_prediction = evaluate_prediction_accuracy(test_y_sigmoid, y_test, 0.4)
 
@@ -106,26 +107,30 @@ def main():
 
 
 def gradient_descent(X, y):
+    np.random.seed(55)
     alpha = 0.01
-    lambda_val = 1
-    iterations = 1100
+    lambda_val = 0.000001
+    iterations = 3000
     m = X.shape[0]
     n = X.shape[1]
 
     X = np.c_[np.ones((len(X), 1)), X]
     limit = math.sqrt(1 / n)
     w = np.random.uniform(-limit, limit, size=(X.shape[1], 1))
-
-    h_w = sigmoid(X.dot(w))
+    h_w = sigmoid_special(X.dot(w))
 
     for _ in range(iterations):
-        w = w + ((alpha / n) * (X.T.dot(y - h_w))) + ((lambda_val/n) * w)
+        w = w + (alpha / n) * (X.T.dot(y - h_w)) + ((lambda_val / n) * w)
     return w
 
 
 def sigmoid(z_list):
     z_list = np.array(z_list, dtype=np.float64)
     return (1 / (1 + np.exp(-z_list)))
+
+def sigmoid_special(z_list):
+    z_list = np.array(z_list, dtype=np.float32)
+    return special.expit(z_list)
 
 
 if __name__ == '__main__':

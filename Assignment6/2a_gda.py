@@ -109,7 +109,6 @@ def main():
     train_prediction, train_prediction_prob = predict(training_x, statistics, prob_zero_y, prob_one_y)
     test_prediction, test_prediction_prob = predict(testing_x, statistics, prob_zero_y, prob_one_y)
 
-
     train_accuracy = calculate_accuracy(train_prediction, training_y)
     test_accuracy = calculate_accuracy(test_prediction, testing_y)
 
@@ -132,3 +131,7 @@ def calculateClassProbabilities(summaries, inputVector):
 
 if __name__ == '__main__':
     main()
+
+# Why the dramatic decrease in accuracy
+# Since this is a polluted dataset, there are more repeated features which affects the covariance values.
+# Generative models don't work well for large number of features because we multipying the probabilities

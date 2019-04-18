@@ -127,9 +127,9 @@ def main():
     train_accuracy = calculate_accuracy(train_prediction, training_y)
     test_accuracy = calculate_accuracy(test_prediction, testing_y)
 
-    print("Mean value of Gaussian random variable training is", train_accuracy)
+    print("Training accuracy:", train_accuracy)
 
-    print("Mean value of Gaussian random variable testing is", test_accuracy)
+    print("Testing accuracy is:", test_accuracy)
 
 
 def calculateClassProbabilities(summaries, inputVector):

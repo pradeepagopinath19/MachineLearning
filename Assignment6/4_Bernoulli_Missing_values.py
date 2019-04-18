@@ -1,16 +1,6 @@
 import pandas as pd
 import numpy as np
-import numbers
-import re
 import random
-import math
-from sklearn.utils import shuffle
-from sklearn.model_selection import train_test_split
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import roc_auc_score
-from random import randrange
-from DecisionStump import DecisionStump
 
 
 def calculate_accuracy(pred, true):
@@ -146,7 +136,7 @@ def main():
     trainingSet, testingSet = extract_full_dataset()
 
     # shuffle
-    #trainingSet = shuffle(trainingSet)
+    # trainingSet = shuffle(trainingSet)
 
     training_x = trainingSet[:, 0:57]
     training_y = trainingSet[:, -1]
@@ -182,9 +172,9 @@ def main():
                                         training_y)
     test_accuracy = calculate_accuracy(predict(testing_x, mean_dict, bern_dict, prob_zero_y, prob_one_y), testing_y)
 
-    #print("Training accuracy is", np.mean(train_accuracy))
+    # print("Training accuracy is", np.mean(train_accuracy))
 
-    print("Testing accuracy is", np.mean(test_accuracy))
+    print("Testing accuracy is", test_accuracy)
 
 
 if __name__ == '__main__':

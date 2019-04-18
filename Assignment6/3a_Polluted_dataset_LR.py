@@ -52,7 +52,7 @@ def main():
     trainingSet, testingSet = extract_full_dataset()
 
     # shuffle
-    # trainingSet = shuffle(trainingSet)
+    trainingSet = shuffle(trainingSet)
 
     # print(trainingSet.shape, testingSet.shape)
     y_test = testingSet[:, -1]
@@ -105,7 +105,13 @@ def main():
     print("Testing accuracy is", np.mean(test_accu))
 
 
+def compute_likelihood(X, y, w):
+    h_w = sigmoid(X.dot(w))
+    mle = np.sum(np.dot(y.T,np.log(h_w)) + np.dot((1 - y).T,np.log(1 - h_w)))
+    return float(mle)
+
 def gradient_descent(X, y):
+    np.random.seed(55)
     alpha = 0.01
     iterations = 1000
     m = X.shape[0]
@@ -114,11 +120,12 @@ def gradient_descent(X, y):
     X = np.c_[np.ones((len(X), 1)), X]
     limit = math.sqrt(1 / n)
     w = np.random.uniform(-limit, limit, size=(X.shape[1], 1))
-
     h_w = sigmoid(X.dot(w))
 
     for _ in range(iterations):
-        w = w + ((alpha / m) * (X.T.dot(y - h_w)))
+        w = w + (alpha / m) * (X.T.dot(y - h_w))
+        loss = compute_likelihood(X, y, w)
+        #print(loss)
     return w
 
 
