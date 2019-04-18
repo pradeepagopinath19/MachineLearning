@@ -1,0 +1,17 @@
+1a
+
+
+RBF kernel Accuracy is 75.2442996742671
+Polynomial kernel Accuracy is 82.08469055374593
+Sigmoid kernel Accuracy is 37.45928338762215
+Linear kernel Accuracy is 92.61672095548317
+
+
+
+1b
+
+Using svm.LinearSVC
+Testing accuracy is 85.61
+
+==================================================
+
