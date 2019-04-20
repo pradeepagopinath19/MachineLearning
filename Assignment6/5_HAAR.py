@@ -17,8 +17,8 @@ from numpy import append, array, int8, uint8, zeros
 
 
 def extract_haar_features():
-    training_dataset = pd.read_csv("Haar_feature_training.csv", header=None, sep=',')
-    # training_dataset = pd.read_csv("Haar_feature_full_training.csv", header=None, sep=',')
+    #training_dataset = pd.read_csv("Haar_feature_training.csv", header=None, sep=',')
+    training_dataset = pd.read_csv("Haar_feature_full_training.csv", header=None, sep=',')
     testing_dataset = pd.read_csv("Haar_feature_testing.csv", header=None, sep=',')
     return training_dataset.values, testing_dataset.values
 
@@ -261,20 +261,20 @@ def adaboost_algo(training_x, training_y, testing_x, testing_y, max_iter):
 
         dec_classifiers.append(classifier)
 
-        #Printing and verification after each step
-
-        prediction_y_train = predict(dec_classifiers, training_x)
-        prediction_y_test = predict(dec_classifiers, testing_x)
-
-        training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
-        testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
-
-        auc_val = roc_auc_score(testing_y, prediction_y_test)
-
-        print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
-              "Weighted error", min_weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
-              1 - testing_accuracy,
-              "AUC", auc_val)
+        # #Printing and verification after each step
+        #
+        # prediction_y_train = predict(dec_classifiers, training_x)
+        # prediction_y_test = predict(dec_classifiers, testing_x)
+        #
+        # training_accuracy = evaluate_prediction_accuracy(training_y, prediction_y_train)
+        # testing_accuracy = evaluate_prediction_accuracy(testing_y, prediction_y_test)
+        #
+        # auc_val = roc_auc_score(testing_y, prediction_y_test)
+        #
+        # print("Round number", iter_number, "Feature:", classifier.feature, "Threshold:", classifier.threshold,
+        #       "Weighted error", min_weighted_error, "Training_error", 1 - training_accuracy, "Testing_error",
+        #       1 - testing_accuracy,
+        #       "AUC", auc_val)
 
     return dec_classifiers
 
@@ -522,7 +522,7 @@ def main():
     test_prediction_array = []
     train_prediction_array = []
 
-    number_iterations = 250
+    number_iterations = 5
 
     for i in range(50, 0, -1):
         training_y = np.copy(training_data[:, -i])
