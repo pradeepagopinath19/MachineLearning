@@ -1,8 +1,8 @@
 class DecisionStumpFeatures():
 
-    def __init__(self, polarity=None, feature=None, threshold=None, alpha=None, prediction=None):
+    def __init__(self, polarity=None, feature=None, threshold=None, alpha=None, predictions=0):
         self.polarity = polarity
         self.feature = feature
         self.threshold = threshold
         self.alpha = alpha
-        self.prediction = prediction
+        self.predictions = predictions

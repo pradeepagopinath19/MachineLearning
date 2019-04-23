@@ -93,7 +93,7 @@ def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
         w *= np.exp(-classifier.alpha * y_train * predictions)
 
         w /= np.sum(w)
-
+        classifier.predictions = np.sum(np.exp(-classifier.alpha * y_train * predictions))
         dec_classifiers.append(classifier)
 
         # # Printing and verification after each step
@@ -117,6 +117,21 @@ def adaboost_algo(dataset, y_train, testing_x, testing_y, max_iter):
 def fetch_top_fifteen(dict):
     sorted_x = sorted(dict.items(), key=operator.itemgetter(1), reverse=True)
     return sorted_x[:15]
+
+
+def fetch_best_features_margin(classifiers):
+    feature_margin = {}
+    for c in classifiers:
+        if c.feature not in feature_margin:
+            feature_margin[c.feature] = c.predictions
+        else:
+            feature_margin[c.feature] += c.predictions
+
+    # sort and fetch top 15 features
+    best_features = fetch_top_fifteen(feature_margin)
+    print(len(best_features))
+
+    return best_features
 
 
 def fetch_best_features_alpha(classifiers):
@@ -145,6 +160,7 @@ def main():
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
     trainingSet = np.column_stack((X_train, y_train))
+    print(trainingSet.shape)
     testingSet = np.column_stack((X_test, y_test))
 
     # {1,-1}
@@ -169,8 +185,8 @@ def main():
 
     classifiers = adaboost_algo(trainingSet, training_y, testing_x, testing_y, num_of_iterations)
 
-    best_features = fetch_best_features_alpha(classifiers)
-
+    #best_features = fetch_best_features_alpha(classifiers)
+    best_features = fetch_best_features_margin(classifiers)
     count = 0
     for feature in best_features:
         f = feature[0]

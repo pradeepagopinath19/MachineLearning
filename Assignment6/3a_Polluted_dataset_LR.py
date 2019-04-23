@@ -110,24 +110,26 @@ def compute_likelihood(X, y, w):
     mle = np.sum(np.dot(y.T,np.log(h_w)) + np.dot((1 - y).T,np.log(1 - h_w)))
     return float(mle)
 
+def stocashtic_gradient_descent(X, y, w, learning_rate=0.5, iterations=50):
+    #X -> Matrix of X with added bias units
+    m = len(y)
+    for it in range(iterations):
+        for i in range(m):
+            rand_ind = np.random.randint(0, m)
+            X_i = X[rand_ind, :].reshape(1, X.shape[1])
+            y_i = y[rand_ind].reshape(1, 1)
+            prediction = sigmoid(np.dot(X_i, w))
+            w = w - (1 / m) * learning_rate * (X_i.T.dot((prediction - y_i)))
+    return w
+
+
 def gradient_descent(X, y):
-    np.random.seed(55)
-    alpha = 0.01
-    iterations = 1000
     m = X.shape[0]
     n = X.shape[1]
-
     X = np.c_[np.ones((len(X), 1)), X]
     limit = math.sqrt(1 / n)
     w = np.random.uniform(-limit, limit, size=(X.shape[1], 1))
-    h_w = sigmoid(X.dot(w))
-
-    for _ in range(iterations):
-        w = w + (alpha / m) * (X.T.dot(y - h_w))
-        loss = compute_likelihood(X, y, w)
-        #print(loss)
-    return w
-
+    return stocashtic_gradient_descent(X, y, w)
 
 def sigmoid(z_list):
     z_list = np.array(z_list, dtype=np.float64)
