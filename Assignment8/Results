@@ -1,0 +1,96 @@
+1a) k =1
+Testing accuracy is Testing accuracy is 90.55374592833876
+
+k = 2
+
+for nonspam<= spam
+Testing accuracy is 90.44516829533116
+
+k = 3
+Testing accuracy is 90.98805646036917
+
+
+k = 7
+
+Testing accuracy is 90.01085776330075
+
+
+1b)
+Full dataset of HAAR
+
+
+Cosine
+
+k = 1 (Full dataset)
+Testing accuracy is 92.17999999999999
+
+
+k =3 (20 % sampling)
+Testing accuracy is 87.24
+
+
+k =7 (20% sampling)
+Testing accuracy is 89.32
+
+
+
+Gaussian
+
+k = 1 with full dataset
+
+Testing accuracy is 92.64
+
+
+k = 3 with 50 % sampling
+Testing accuracy is 90.32
+
+
+
+k = 7
+50% sampling
+Testing accuracy is 88.05
+
+
+
+
+Poly with 50 % sampling dataset
+
+k =1
+
+Testing accuracy is 51.43
+
+k = 3
+
+Testing accuracy is 48.230000000000004
+
+
+k = 7 (Full dataset)
+
+Testing accuracy is 47.57
+
+
+==============================================================
+
+
+2a) Spambase
+
+Testing accuracy is 81.86753528773073
+
+
+
+2a) Digit
+r = 0.83
+Testing accuracy is 65.33
+
+
+
+2b Spam_Gauss
+
+Testing accuracy is 89.35939196525516
+
+
+
+
+
+
+
