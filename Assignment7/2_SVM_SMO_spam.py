@@ -9,82 +9,49 @@ from sklearn.metrics import roc_auc_score
 from random import randrange
 import matplotlib.pyplot as plt
 import operator
+from sklearn import preprocessing
 
 
 def evaluate_prediction_accuracy(predictedValues, actualValues):
     correct_predictions = [i for i, j in zip(predictedValues, actualValues) if i == j]
 
-    return float(len(correct_predictions)) / len(actualValues)
+    return float(len(correct_predictions)) / len(actualValues) * 100
 
 
 def extract_full_dataset():
     spam_dataset_url = "http://archive.ics.uci.edu/ml/machine-learning-databases/spambase/spambase.data"
     spam_dataset = pd.read_csv(spam_dataset_url, header=None, sep=',')
 
-    return spam_dataset.values
-
-
-def algorithm_prediction(alpha_i, b, trainingSet):
-    print(alpha_i.shape, trainingSet.shape)
-    return np.dot(alpha_i.T, trainingSet) + b
-
-
-def calculate_w(alpha, X, y):
-    return np.dot(X.T, np.multiply(alpha, y))
-
-
-def calculate_b(X, y, w):
-    b = y - np.dot(w.T, X.T)
-    return np.mean(b)
-
-
-def error_prediction(X, y, w, b):
-    return np.sign(np.dot(w.T, X.T) + b).astype(int) - y
+    return spam_dataset
 
 
 def select_random_j_value(i, max_val):
-    j = np.random.randint(0, max_val, dtype=int)
-
+    j = int(np.random.randint(0, max_val))
     while j == i:
-        j = np.random.randint(0, max_val, dtype=int)
+        j = int(np.random.uniform(0, max_val))
 
     return j
 
 
-def compute_l_h(alpha_i, alpha_j, y_i, y_j, c):
-    if y_i != y_j:
-        l = max(0, alpha_j - alpha_i)
-        h = min(c, c + alpha_j - alpha_i)
-    else:
-        l = max(0, alpha_i + alpha_j - c)
-        h = min(c, alpha_i + alpha_j)
-    return l, h
+def calculate_eta(X, i, j):
+    return 2.0 * X[i, :] * X[j, :].T - (X[i, :] * X[j, :].T) - X[j, :] * X[j, :].T
+    # return (2 * np.dot(x_i, x_j)) - np.dot(x_i, x_i) - np.dot(x_j, x_j)
 
 
-def calculate_tow(x_i, x_j):
-    return (2 * np.dot(x_i, x_j)) - np.dot(x_i, x_i) - np.dot(x_j, x_j)
-
-
-def calculate_alpha_j(alpha_j_old, y_j, e_i, e_j, tou, h, l):
-    alpha_j = alpha_j_old - (((y_j) * (e_i - e_j)) / tou)
+def calculate_alpha_j(alpha_j_old, y_j, e_i, e_j, eta, h, l):
+    alpha_j = alpha_j_old - (((y_j) * (e_i - e_j)) / eta)
 
     if alpha_j > h:
         return h
-    elif alpha_j >= l and alpha_j <= h:
-        return alpha_j
-    else:
+    elif l > alpha_j:
         return l
-
-
-def calculate_alpha_i(alpha_i_old, y_i, y_j, alpha_j_old, alpha_j):
-    return alpha_i_old + ((y_i * y_j) * (alpha_j_old - alpha_j))
+    else:
+        return alpha_j
 
 
 def calculate_b1_b2(b, y_i, y_j, alpha_i, alpha_i_old, alpha_j, alpha_j_old, x_i, x_j, e_i, e_j):
-    b1 = b - e_i - (y_i * (alpha_i - alpha_i_old) * (np.dot(x_i, x_j))) - (
-            y_j * (alpha_j - alpha_j_old) * np.dot(x_i, x_j))
-    b2 = b - e_j - (y_i * (alpha_i - alpha_i_old) * np.dot(x_i, x_j)) - (
-                y_j * (alpha_j - alpha_j_old) * np.dot(x_j, x_i))
+    b1 = b - e_i - y_i * (alpha_i - alpha_i_old) * x_i * x_i.T - y_j * (alpha_j - alpha_j_old) * x_i * x_j.T
+    b2 = b - e_j - y_i * (alpha_i - alpha_i_old) * x_i * x_j.T - y_j * (alpha_j - alpha_j_old) * x_j * x_j.T
 
     return b1, b2
 
@@ -95,83 +62,125 @@ def compute_final_b(alpha_i, alpha_j, c, b1, b2):
     elif alpha_j > 0 and alpha_j < c:
         return b2
     else:
-        return (b1 + b2) / 2
+        return (b1 + b2) / 2.0
 
 
-def svm_smo(trainingSet):
+def svm_smo(X, y):
+    y = np.mat(y).transpose()
+    X = np.mat(X)
     # Initialization
-    c = 1.0
-    tolerance = 0.001
-    number_of_iterations = 1
-
-    alpha = np.zeros((len(trainingSet), 1))
-    # print(alpha_i)
+    c = 0.001
+    tolerance = 0.01
+    epsilon = 0.001
+    number_of_iterations = 1000
+    alpha = np.mat(np.zeros((X.shape[0], 1)))
     b = 0
-    X = trainingSet[:, 0: -1]
-    y = trainingSet[:, -1].reshape(-1, 1)
-    # print(X.shape, y.shape)
+    # b = np.mat([[0]])
+    # print(alpha, b)
 
-    n = len(trainingSet)
-    for _ in range(number_of_iterations):
-        for i in range(n):
-            w = calculate_w(alpha, X, y)  # alpha_i or alpha??
-
-            b = calculate_b(X, y, w)
-            x_i, y_i = X[i, :], y[i]
-            e_i = error_prediction(x_i, y_i, w, b)
+    m, n = X.shape
+    iter = 0
+    while iter < number_of_iterations:
+        alpha_changed = 0
+        for i in range(m):
+            # print("b values is", b)
+            fxi = float(np.multiply(alpha, y).T * (X * X[i, :].T)) + b
+            e_i = fxi - float(y[i])
+            # e_i = np.multiply(y, alpha).T * X * X.T + b - y[i]
             # print(e_i)
+            if ((y[i] * e_i < -tolerance) and (alpha[i] < c)) or ((y[i] * e_i > tolerance) and (alpha[i] > 0)):
+                j = select_random_j_value(i, m)
+                # print(i, j)
 
-            if ((y_i * e_i) < -tolerance and alpha[i] < c) or ((y_i * e_i) > tolerance and alpha[i] > 0):
-                j = select_random_j_value(i, n - 1)
-                x_j, y_j = X[j, :], y[j]
-                e_j = error_prediction(x_j, y_j, w, b)
-                alpha_i_old = alpha[i]
-                alpha_j_old = alpha[j]
-                l, h = compute_l_h(alpha_i_old, alpha_j_old, y_i, y_j, c)
+                fxj = float(np.multiply(alpha, y).T * (X * X[j, :].T)) + b
+                e_j = fxj - float(y[j])
+
+                # saving the old values - deep copy
+                alpha_i_old = alpha[i].copy()
+                alpha_j_old = alpha[j].copy()
+
+                if y[i] != y[j]:
+                    l = max(0, alpha[j] - alpha[i])
+                    h = min(c, c + alpha[j] - alpha[i])
+
+                else:
+                    l = max(0, alpha[j] + alpha[i] - c)
+                    h = min(c, alpha[j] + alpha[i])
+
                 if l == h:
                     continue
-                tou = calculate_tow(x_i, x_j)
-                if tou >= 0:
-                    continue
-                alpha_j = calculate_alpha_j(alpha_j_old, y_j, e_i, e_j, tou, h, l)
-                if abs(alpha_j - alpha_j_old) < 10e-5:
-                    continue
-                alpha_i = calculate_alpha_i(alpha_i_old, y_i, y_j, alpha_j_old, alpha_j)
-                b1, b2 = calculate_b1_b2(b, y_i, y_j, alpha_i, alpha_i_old, alpha_j, alpha_j_old, x_i, x_j, e_i, e_j)
-                b = compute_final_b(alpha_i, alpha_j, c, b1, b2)
-    return alpha, b
 
+                eta = calculate_eta(X, i, j)
+                if eta >= 0:
+                    continue
+                alpha[j] = calculate_alpha_j(alpha[j], y[j], e_i, e_j, eta, h, l)
+
+                if abs(alpha[j] - alpha_j_old) < epsilon:
+                    continue
+
+                alpha[i] += y[j] * y[i] * (alpha_j_old - alpha[j])
+
+                b1, b2 = calculate_b1_b2(b, y[i], y[j], alpha[i], alpha_i_old, alpha[j], alpha_j_old, X[i, :], X[j, :],
+                                         e_i, e_j)
+                b = compute_final_b(alpha[i], alpha[j], c, b1, b2)
+                alpha_changed += 1
+        if alpha_changed == 0:
+            iter += 1
+        else:
+            iter = 0
+
+        return alpha, b
+
+
+def predict_values(X_train, y_train, X_test, alpha, bias):
+    predictions = []
+    y = np.mat(y_train).transpose()
+    X = np.mat(X_train)
+    X_test = np.mat(X_test)
+    for i in range(len(X_test)):
+        y_prediction = float(np.multiply(alpha, y).T * (X * X_test[i, :].T)) + bias
+        if y_prediction >= 0:
+            predictions.append(1)
+        else:
+            predictions.append(-1)
+    return predictions
 
 def main():
     dataset = extract_full_dataset()
     dataset = shuffle(dataset)
 
+    # Pandas to numpy array
+    dataset = dataset.values
+
+    # print(dataset.shape)
+
     X = dataset[:, 0:-1]
     y = dataset[:, -1]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1)
+    # {1, -1}
 
+    for i in range(len(y)):
+        if y[i] == 0:
+            y[i] = -1
+
+    scaler = preprocessing.StandardScaler()
+    scaler.fit(X)
+    X = scaler.transform(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     trainingSet = np.column_stack((X_train, y_train))
     testingSet = np.column_stack((X_test, y_test))
 
-    # {1,-1}
+    alpha, bias = svm_smo(X_train, y_train)
 
-    training_y_col = len(trainingSet[0]) - 1
+    print(alpha, bias)
+    # Prediction
+    y_predications = predict_values(X_train, y_train, X_test, alpha, bias)
 
-    for row_no_training in range(len(trainingSet)):
-        if trainingSet[row_no_training][training_y_col] == 0:
-            trainingSet[row_no_training][training_y_col] = -1
+    # Evaluate
+    accuracy = evaluate_prediction_accuracy(y_predications, y_test)
+    print("Accuracy is", accuracy)
 
-    testing_y_col = len(testingSet[0]) - 1
-
-    for row_no_testing in range(len(testingSet)):
-        if testingSet[row_no_testing][testing_y_col] == 0:
-            testingSet[row_no_testing][testing_y_col] = -1
-
-    # print(trainingSet.shape, testingSet.shape)
-
-    alphas, bias = svm_smo(trainingSet)
-    print(alphas, bias)
 
 if __name__ == '__main__':
     main()
