@@ -1,14 +1,7 @@
 import numpy as np
 import pandas as pd
-import random
-
-import math
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score
-from random import randrange
-import matplotlib.pyplot as plt
-import operator
 from sklearn import preprocessing
 
 
@@ -72,7 +65,7 @@ def svm_smo(X, y):
     c = 0.001
     tolerance = 0.01
     epsilon = 0.001
-    number_of_iterations = 1000
+    number_of_iterations = 100
     alpha = np.mat(np.zeros((X.shape[0], 1)))
     b = 0
     # b = np.mat([[0]])
