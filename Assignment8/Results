@@ -83,14 +83,82 @@ r = 0.83
 Testing accuracy is 65.33
 
 
+r = 0.4
+Testing accuracy is 84.42
+
 
 2b Spam_Gauss
 
 Testing accuracy is 89.35939196525516
 
 
+Digits_Gauss
+Testing accuracy is 92.80000000000001
+
+
+
+Digits_ poly
+
+Testing accuracy is 64.01
+
+
+================================================================
+3)
+a
+(1000, 1)
+1000
+(1000, 1)
+0
+Success after 2 iterations
+
+
+3b)
+dot_kernal
+
+Does not converge
+(1000, 1)
+444
+
+
+Gaussian kernal converges
+
+(1000, 3)
+(1000, 1)
+(1000,)
+1000
+(1000, 1)
+(1000,)
+0
+Success after 2 iterations
+
+
+
+===============================================================
 
 
 
 
 
+=================================================================
+5)
+
+60 % training
+k = 9
+
+Testing accuracy is 78.59858772406301
+
+
+
+80% training
+k = 3
+
+Top 5 features are [24 26 54 55 56]
+
+Testing accuracy is 83.93051031487514
+
+
+k = 9
+
+Top 5 features are [24 26 54 55 56]
+
+Testing accuracy is 85.55917480998914
